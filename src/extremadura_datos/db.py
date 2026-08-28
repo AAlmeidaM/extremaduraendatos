@@ -17,13 +17,38 @@ logger = logging.getLogger(__name__)
 
 SCHEMA_FILE = PROJECT_ROOT / "sql" / "001_schema.sql"
 
-# Traduce la "clave de territorio" que detecta parse.py (subcadena en minúsculas
-# sin acentos) al nombre exacto guardado en la tabla `territorio` (sembrada por
-# sql/001_schema.sql).
+# Traduce la "clave de territorio" que detecta parse.py (nombre normalizado:
+# minúsculas, sin acentos) al nombre exacto guardado en la tabla `territorio`
+# (sembrada por sql/001_schema.sql). Ampliado el 2026-08-28 con el resto de
+# CCAA + las dos filas nacionales ("Nacional" / "Total Nacional", que usa el
+# INE indistintamente según la tabla) para poder comparar Extremadura con el
+# resto de España — ver indicadores.py (_TODAS_CCAA) y parse.py
+# (VARIABLES_TERRITORIALES, que ahora también reconoce las etiquetas
+# "Totales Territoriales"/"Total Nacional" como dimensión territorial).
 TERRITORIO_CLAVE_A_NOMBRE = {
     "badajoz": "Badajoz",
     "caceres": "Cáceres",
     "extremadura": "Extremadura",
+    "andalucia": "Andalucía",
+    "aragon": "Aragón",
+    "asturias, principado de": "Asturias, Principado de",
+    "balears, illes": "Balears, Illes",
+    "canarias": "Canarias",
+    "cantabria": "Cantabria",
+    "castilla - la mancha": "Castilla - La Mancha",
+    "castilla y leon": "Castilla y León",
+    "cataluna": "Cataluña",
+    "ceuta": "Ceuta",
+    "comunitat valenciana": "Comunitat Valenciana",
+    "galicia": "Galicia",
+    "madrid, comunidad de": "Madrid, Comunidad de",
+    "melilla": "Melilla",
+    "murcia, region de": "Murcia, Región de",
+    "navarra, comunidad foral de": "Navarra, Comunidad Foral de",
+    "pais vasco": "País Vasco",
+    "rioja, la": "Rioja, La",
+    "nacional": "España",
+    "total nacional": "España",
 }
 
 

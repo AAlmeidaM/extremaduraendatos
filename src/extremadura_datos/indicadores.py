@@ -22,12 +22,36 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-# Territorios de Extremadura, tal cual los espera parse.py (ver
-# db.TERRITORIO_CLAVE_A_NOMBRE). Se reutiliza para no repetir la tupla en
-# cada entrada.
+# Territorios tal cual los espera parse.py (ver db.TERRITORIO_CLAVE_A_NOMBRE).
+# Se reutiliza para no repetir la tupla en cada entrada.
+#
+# _CCAA / _CCAA_Y_PROVINCIA (uso original, solo Extremadura): quedan para los
+# 4 indicadores de ámbito exclusivamente provincial que no se han ampliado
+# (ver docs/fuentes-ine.md, no piden desglose por CCAA a la API del INE).
 _CCAA = ("extremadura",)
 _PROVINCIA = ("badajoz", "caceres")
 _CCAA_Y_PROVINCIA = ("extremadura", "badajoz", "caceres")
+
+# _TODAS_CCAA / _TODAS_CCAA_Y_PROVINCIA (2026-08-28): las 19 Comunidades y
+# Ciudades Autónomas + las dos etiquetas nacionales que usa el INE ("Nacional"
+# / "Total Nacional", según la tabla) + Extremadura. Se usan en los 19
+# indicadores de ámbito CCAA para poder comparar Extremadura con el resto de
+# España (objetivo del proyecto: web de análisis actualizada a diario, ver
+# PROJECT.md §3 y §17) sin tener que volver a pedirle el dato nacional a la
+# API en cada consulta. Los nombres deben coincidir EXACTOS (normalizados: sin
+# acentos, minúsculas) con lo que trae `MetaData` del INE — verificado contra
+# datos reales de 7 tablas el 2026-08-28 (ver docs/fuentes-ine.md); si el INE
+# usa otra grafía en alguna tabla nueva, añadirla aquí y en
+# db.TERRITORIO_CLAVE_A_NOMBRE (los dos sitios van siempre juntos).
+_TODAS_CCAA = (
+    "andalucia", "aragon", "asturias, principado de", "balears, illes",
+    "canarias", "cantabria", "castilla - la mancha", "castilla y leon",
+    "cataluna", "ceuta", "comunitat valenciana", "extremadura", "galicia",
+    "madrid, comunidad de", "melilla", "murcia, region de",
+    "navarra, comunidad foral de", "pais vasco", "rioja, la",
+    "nacional", "total nacional",
+)
+_TODAS_CCAA_Y_PROVINCIA = _TODAS_CCAA + ("badajoz", "caceres")
 
 
 @dataclass(frozen=True)
@@ -55,7 +79,7 @@ INDICADORES: list[Indicador] = [
         categoria="precios",
         nivel_territorial="ccaa",
         periodicidad="mensual",
-        filtro_territorio=_CCAA,
+        filtro_territorio=_TODAS_CCAA,
     ),
     # --- Industria y Empresa ----------------------------------------------
     Indicador(
@@ -65,7 +89,7 @@ INDICADORES: list[Indicador] = [
         categoria="industria_empresa",
         nivel_territorial="ccaa",
         periodicidad="mensual",
-        filtro_territorio=_CCAA,
+        filtro_territorio=_TODAS_CCAA,
     ),
     Indicador(
         codigo="ine_soc_mercantiles_constituidas_ccaa",
@@ -74,7 +98,7 @@ INDICADORES: list[Indicador] = [
         categoria="industria_empresa",
         nivel_territorial="ccaa",
         periodicidad="mensual",
-        filtro_territorio=_CCAA,
+        filtro_territorio=_TODAS_CCAA,
     ),
     Indicador(
         codigo="ine_soc_mercantiles_disueltas_provincia",
@@ -92,7 +116,7 @@ INDICADORES: list[Indicador] = [
         categoria="industria_empresa",
         nivel_territorial="ccaa",
         periodicidad="mensual",
-        filtro_territorio=_CCAA,
+        filtro_territorio=_TODAS_CCAA,
     ),
     Indicador(
         codigo="ine_icn_industria_ccaa",
@@ -101,7 +125,7 @@ INDICADORES: list[Indicador] = [
         categoria="industria_empresa",
         nivel_territorial="ccaa",
         periodicidad="mensual",
-        filtro_territorio=_CCAA,
+        filtro_territorio=_TODAS_CCAA,
     ),
     Indicador(
         codigo="ine_icn_comercio_menor_ccaa",
@@ -110,7 +134,7 @@ INDICADORES: list[Indicador] = [
         categoria="industria_empresa",
         nivel_territorial="ccaa",
         periodicidad="mensual",
-        filtro_territorio=_CCAA,
+        filtro_territorio=_TODAS_CCAA,
     ),
     Indicador(
         codigo="ine_confianza_empresarial_ccaa",
@@ -119,7 +143,7 @@ INDICADORES: list[Indicador] = [
         categoria="industria_empresa",
         nivel_territorial="ccaa",
         periodicidad="trimestral",
-        filtro_territorio=_CCAA,
+        filtro_territorio=_TODAS_CCAA,
     ),
     # --- Turismo -----------------------------------------------------------
     Indicador(
@@ -129,7 +153,7 @@ INDICADORES: list[Indicador] = [
         categoria="turismo",
         nivel_territorial="ccaa",
         periodicidad="mensual",
-        filtro_territorio=_CCAA,
+        filtro_territorio=_TODAS_CCAA,
     ),
     Indicador(
         codigo="ine_turismo_viajeros_pernoctaciones_ccaa",
@@ -138,7 +162,7 @@ INDICADORES: list[Indicador] = [
         categoria="turismo",
         nivel_territorial="ccaa",
         periodicidad="mensual",
-        filtro_territorio=_CCAA,
+        filtro_territorio=_TODAS_CCAA,
     ),
     Indicador(
         codigo="ine_turismo_establecimientos_ccaa",
@@ -147,7 +171,7 @@ INDICADORES: list[Indicador] = [
         categoria="turismo",
         nivel_territorial="ccaa",
         periodicidad="mensual",
-        filtro_territorio=_CCAA,
+        filtro_territorio=_TODAS_CCAA,
     ),
     Indicador(
         codigo="ine_turismo_estancia_media_ccaa",
@@ -156,7 +180,7 @@ INDICADORES: list[Indicador] = [
         categoria="turismo",
         nivel_territorial="ccaa",
         periodicidad="mensual",
-        filtro_territorio=_CCAA,
+        filtro_territorio=_TODAS_CCAA,
     ),
     Indicador(
         # Desactivada: verificado contra la API real el 2026-08-28 (tabla
@@ -174,7 +198,7 @@ INDICADORES: list[Indicador] = [
         categoria="turismo",
         nivel_territorial="ccaa",
         periodicidad="mensual",
-        filtro_territorio=_CCAA,
+        filtro_territorio=_TODAS_CCAA,
         activo=False,
     ),
     # --- Vivienda ------------------------------------------------------------
@@ -194,7 +218,7 @@ INDICADORES: list[Indicador] = [
         categoria="vivienda",
         nivel_territorial="ccaa_y_provincia",
         periodicidad="mensual",
-        filtro_territorio=_CCAA_Y_PROVINCIA,
+        filtro_territorio=_TODAS_CCAA_Y_PROVINCIA,
     ),
     Indicador(
         codigo="ine_viviendas_transmitidas_ccaa_provincia",
@@ -203,7 +227,7 @@ INDICADORES: list[Indicador] = [
         categoria="vivienda",
         nivel_territorial="ccaa_y_provincia",
         periodicidad="mensual",
-        filtro_territorio=_CCAA_Y_PROVINCIA,
+        filtro_territorio=_TODAS_CCAA_Y_PROVINCIA,
     ),
     Indicador(
         codigo="ine_ipv_ccaa",
@@ -212,7 +236,7 @@ INDICADORES: list[Indicador] = [
         categoria="vivienda",
         nivel_territorial="ccaa",
         periodicidad="trimestral",
-        filtro_territorio=_CCAA,
+        filtro_territorio=_TODAS_CCAA,
     ),
     Indicador(
         codigo="ine_fincas_rusticas_ccaa_provincia",
@@ -221,7 +245,7 @@ INDICADORES: list[Indicador] = [
         categoria="vivienda",
         nivel_territorial="ccaa_y_provincia",
         periodicidad="mensual",
-        filtro_territorio=_CCAA_Y_PROVINCIA,
+        filtro_territorio=_TODAS_CCAA_Y_PROVINCIA,
     ),
     # --- Empleo ------------------------------------------------------------
     Indicador(
@@ -231,7 +255,7 @@ INDICADORES: list[Indicador] = [
         categoria="empleo",
         nivel_territorial="ccaa",
         periodicidad="trimestral",
-        filtro_territorio=_CCAA,
+        filtro_territorio=_TODAS_CCAA,
     ),
     Indicador(
         codigo="ine_tiempo_trabajo_ccaa",
@@ -240,7 +264,7 @@ INDICADORES: list[Indicador] = [
         categoria="empleo",
         nivel_territorial="ccaa",
         periodicidad="trimestral",
-        filtro_territorio=_CCAA,
+        filtro_territorio=_TODAS_CCAA,
     ),
     Indicador(
         codigo="ine_epa_paro_provincia",
@@ -259,7 +283,7 @@ INDICADORES: list[Indicador] = [
         categoria="mercado_laboral",
         nivel_territorial="ccaa",
         periodicidad="trimestral",
-        filtro_territorio=_CCAA,
+        filtro_territorio=_TODAS_CCAA,
     ),
     Indicador(
         codigo="ine_cre_provincia",
@@ -284,7 +308,7 @@ INDICADORES: list[Indicador] = [
         categoria="economia",
         nivel_territorial="ccaa",
         periodicidad="anual",
-        filtro_territorio=_CCAA,
+        filtro_territorio=_TODAS_CCAA,
     ),
 ]
 

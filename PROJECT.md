@@ -39,12 +39,25 @@ actualizadas automáticamente, en vez de tener que consultarlas a mano en la
 web del INE cada vez. Sirve de base para futuros análisis, cuadros de mando
 o una API de consulta, que se añadirán en fases posteriores.
 
+**Objetivo final del proyecto (aclarado por el usuario el 2026-08-28):** una
+web de análisis, actualizada automáticamente cada día con el dato nuevo, en
+la que el usuario comparte y explora cómo está Extremadura frente al resto
+de España en estos indicadores. Esto implica una pieza que la fase 1 no
+cubría: hace falta el dato de **todas las CCAA** (no solo Extremadura) más
+el **total nacional**, para poder calcular esa comparativa sin depender de
+consultas puntuales a la API en cada visita a la web. Ver la entrada del
+2026-08-28 en §17 ("Ampliación a comparativa nacional") para el diseño y el
+estado de esta ampliación.
+
 **Criterio de éxito de esta fase:** ejecutar la ingesta y comprobar en
 PostgreSQL que la tabla `observacion` tiene filas de los 24 indicadores
 catalogados (ver `src\extremadura_datos\indicadores.py`) para
 Extremadura/Badajoz/Cáceres, y que una segunda ejecución no duplica filas
 (upsert correcto) ni pierde series (varias series por territorio y periodo
-deben conservarse — ver §4).
+deben conservarse — ver §4). **Criterio de éxito de la ampliación nacional:**
+los 19 indicadores de ámbito CCAA tienen, además, filas para las otras 18
+CCAA/ciudades autónomas y para España (total nacional), con el mismo upsert
+idempotente.
 
 ---
 
@@ -331,6 +344,43 @@ Destino: `F:\Archive\Backups\extremadura-en-datos\`
   para tener el pipeline funcionando: falta solo revisar la tarea programada
   diaria dentro de un tiempo para confirmar que la ingesta incremental
   automática también funciona sin supervisión.
+- **✅/⏳ Ampliación a comparativa nacional (2026-08-28, en curso).** El
+  usuario aclaró el objetivo final: una web propia que compare Extremadura
+  con el resto de España, actualizada a diario. Hasta ahora la base de datos
+  solo guardaba Extremadura/Badajoz/Cáceres (el resto de CCAA se descartaba
+  al filtrar); para poder comparar sin depender de una consulta en vivo a la
+  API en cada visita (como se hizo puntualmente para el informe exploratorio
+  de este mismo día), se ha ampliado:
+  - `sql/001_schema.sql`: 18 filas nuevas en `territorio` (las CCAA y
+    ciudades autónomas que faltaban, con su `codigo_ine` oficial), todas con
+    `padre_id` = España. Sigue siendo idempotente (`ON CONFLICT (nivel,
+    nombre) DO NOTHING`, mismo patrón que ya había).
+  - `parse.py`: `VARIABLES_TERRITORIALES` reconoce ahora también
+    `"Totales Territoriales"` / `"Total Nacional"` (las dos etiquetas que usa
+    el INE para la fila-resumen nacional, según la tabla) como dimensión
+    territorial — antes se descartaba sin guardar.
+  - `db.py`: `TERRITORIO_CLAVE_A_NOMBRE` ampliado con las 18 CCAA nuevas más
+    `"nacional"`/`"total nacional"` → territorio `España`.
+  - `indicadores.py`: nuevas constantes `_TODAS_CCAA` /
+    `_TODAS_CCAA_Y_PROVINCIA` (19 CCAA + Extremadura + las dos etiquetas
+    nacionales, verificadas letra a letra contra JSON real de 7 tablas). Los
+    **19 indicadores de ámbito CCAA** (16 `ccaa` + 3 `ccaa_y_provincia`,
+    incluida la inactiva 10839) pasan a usarlas en vez de
+    `_CCAA`/`_CCAA_Y_PROVINCIA`. **Los 4 indicadores exclusivamente
+    provinciales** (`ine_cre_provincia`, `ine_epa_paro_provincia`,
+    `ine_soc_mercantiles_disueltas_provincia`, `ine_hipotecas_provincia`)
+    **no se han tocado** — decisión explícita del usuario, esas tablas del
+    INE no traen desglose por CCAA que aprovechar.
+  Validado en un PostgreSQL de prueba en el entorno cloud (no en la base de
+  datos de producción) con la tabla real 8027 (confianza empresarial): 18
+  territorios distintos (17 CCAA + España; esa tabla en concreto no publica
+  Ceuta/Melilla), upsert idempotente (misma cuenta de filas en 2 pasadas).
+  **Pendiente de ejecutar de verdad en producción:** hace falta relanzar
+  `ingest.py --modo historico` en el PC (con Computer Use, mismo patrón de
+  `ejecutar_todo.bat`) para descargar el histórico completo con el nuevo
+  alcance y cargarlo en `extremadura_en_datos` — bloqueado momentáneamente
+  porque el PC estaba con la sesión bloqueada. Ver CHANGELOG 2026-08-28 (7)
+  para el detalle y el estado exacto en el momento de escribir esto.
 - **Filtrado por nombre, no por código interno.** Se filtra Extremadura /
   Badajoz / Cáceres buscando esas palabras (sin acentos) en el nombre de
   serie que devuelve el INE, no por los códigos numéricos internos de

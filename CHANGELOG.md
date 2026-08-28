@@ -1,5 +1,39 @@
 # CHANGELOG — Extremadura en Datos
 
+## 2026-08-28 (7)
+
+- **Ampliación del modelo de datos: todas las CCAA + total nacional, para
+  poder comparar Extremadura con el resto de España.** El usuario aclaró el
+  objetivo final del proyecto: una web de análisis propia, actualizada cada
+  día, que compare Extremadura con el resto de España — no solo un
+  informe puntual. Eso exige tener el dato de las demás CCAA y el total
+  nacional guardado en la base de datos (no pedirlo en vivo a la API cada
+  vez, que es lo que se hizo para el informe exploratorio de hoy).
+  Cambios:
+  - `sql/001_schema.sql`: +18 filas en `territorio` (resto de CCAA y
+    ciudades autónomas, `codigo_ine` oficial del INE, `padre_id` = España).
+  - `parse.py`: `VARIABLES_TERRITORIALES` reconoce ahora
+    `"Totales Territoriales"` y `"Total Nacional"` como dimensión
+    territorial (antes esa fila se descartaba siempre, ver nota en el
+    propio archivo).
+  - `db.py`: `TERRITORIO_CLAVE_A_NOMBRE` ampliado (18 CCAA + "nacional"/
+    "total nacional" → España).
+  - `indicadores.py`: `_TODAS_CCAA` / `_TODAS_CCAA_Y_PROVINCIA` nuevas;
+    los 19 indicadores de ámbito CCAA (de los 23 activos) las usan ya en
+    vez de `_CCAA`/`_CCAA_Y_PROVINCIA`. Los 4 indicadores exclusivamente
+    provinciales quedan igual (decisión explícita del usuario — esas tablas
+    del INE no traen desglose por CCAA).
+  - Validado en un PostgreSQL de prueba en el entorno cloud (esquema
+    aplicado dos veces sin duplicar filas; tabla real 8027 parseada e
+    insertada con upsert idempotente, capturando 17 CCAA + España). No se
+    ha tocado la base de datos de producción en esta prueba.
+  - **Pendiente:** relanzar `ingest.py --modo historico` en el PC real
+    (con Computer Use) para descargar el histórico completo con el nuevo
+    alcance (todas las CCAA) y cargarlo en `extremadura_en_datos`. El script
+    (`reingesta_ccaa.bat`) ya está preparado en la raíz del proyecto; solo
+    falta poder controlar el PC (estaba bloqueado en el momento de escribir
+    esto).
+
 ## 2026-08-28 (6)
 
 - **Informe descriptivo puntual: Extremadura vs resto de España.** El usuario

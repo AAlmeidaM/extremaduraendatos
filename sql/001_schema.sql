@@ -189,3 +189,84 @@ INSERT INTO territorio (nivel, codigo_ine, nombre, padre_id)
     SELECT 'provincia', '10', 'Cáceres', id FROM territorio
     WHERE nivel = 'ccaa' AND nombre = 'Extremadura'
 ON CONFLICT (nivel, nombre) DO NOTHING;
+
+-- Resto de Comunidades y Ciudades Autonomas (2026-08-28): antes solo se
+-- guardaba Extremadura/Badajoz/Caceres; para poder comparar Extremadura
+-- con el resto de Espana (objetivo del proyecto: web de analisis
+-- actualizada a diario) hace falta el resto de CCAA como territorio real
+-- -- ver indicadores.py (_TODAS_CCAA) y db.py (TERRITORIO_CLAVE_A_NOMBRE).
+-- Los 4 indicadores de ambito exclusivamente provincial (no CCAA) siguen
+-- limitados a Badajoz/Caceres -- no hay comparativa nacional a nivel de
+-- provincia en esta fase.
+INSERT INTO territorio (nivel, codigo_ine, nombre, padre_id)
+    SELECT 'ccaa', '01', 'Andalucía', id FROM territorio
+    WHERE nivel = 'pais' AND nombre = 'España'
+ON CONFLICT (nivel, nombre) DO NOTHING;
+INSERT INTO territorio (nivel, codigo_ine, nombre, padre_id)
+    SELECT 'ccaa', '02', 'Aragón', id FROM territorio
+    WHERE nivel = 'pais' AND nombre = 'España'
+ON CONFLICT (nivel, nombre) DO NOTHING;
+INSERT INTO territorio (nivel, codigo_ine, nombre, padre_id)
+    SELECT 'ccaa', '03', 'Asturias, Principado de', id FROM territorio
+    WHERE nivel = 'pais' AND nombre = 'España'
+ON CONFLICT (nivel, nombre) DO NOTHING;
+INSERT INTO territorio (nivel, codigo_ine, nombre, padre_id)
+    SELECT 'ccaa', '04', 'Balears, Illes', id FROM territorio
+    WHERE nivel = 'pais' AND nombre = 'España'
+ON CONFLICT (nivel, nombre) DO NOTHING;
+INSERT INTO territorio (nivel, codigo_ine, nombre, padre_id)
+    SELECT 'ccaa', '05', 'Canarias', id FROM territorio
+    WHERE nivel = 'pais' AND nombre = 'España'
+ON CONFLICT (nivel, nombre) DO NOTHING;
+INSERT INTO territorio (nivel, codigo_ine, nombre, padre_id)
+    SELECT 'ccaa', '06', 'Cantabria', id FROM territorio
+    WHERE nivel = 'pais' AND nombre = 'España'
+ON CONFLICT (nivel, nombre) DO NOTHING;
+INSERT INTO territorio (nivel, codigo_ine, nombre, padre_id)
+    SELECT 'ccaa', '07', 'Castilla y León', id FROM territorio
+    WHERE nivel = 'pais' AND nombre = 'España'
+ON CONFLICT (nivel, nombre) DO NOTHING;
+INSERT INTO territorio (nivel, codigo_ine, nombre, padre_id)
+    SELECT 'ccaa', '08', 'Castilla - La Mancha', id FROM territorio
+    WHERE nivel = 'pais' AND nombre = 'España'
+ON CONFLICT (nivel, nombre) DO NOTHING;
+INSERT INTO territorio (nivel, codigo_ine, nombre, padre_id)
+    SELECT 'ccaa', '09', 'Cataluña', id FROM territorio
+    WHERE nivel = 'pais' AND nombre = 'España'
+ON CONFLICT (nivel, nombre) DO NOTHING;
+INSERT INTO territorio (nivel, codigo_ine, nombre, padre_id)
+    SELECT 'ccaa', '10', 'Comunitat Valenciana', id FROM territorio
+    WHERE nivel = 'pais' AND nombre = 'España'
+ON CONFLICT (nivel, nombre) DO NOTHING;
+INSERT INTO territorio (nivel, codigo_ine, nombre, padre_id)
+    SELECT 'ccaa', '12', 'Galicia', id FROM territorio
+    WHERE nivel = 'pais' AND nombre = 'España'
+ON CONFLICT (nivel, nombre) DO NOTHING;
+INSERT INTO territorio (nivel, codigo_ine, nombre, padre_id)
+    SELECT 'ccaa', '13', 'Madrid, Comunidad de', id FROM territorio
+    WHERE nivel = 'pais' AND nombre = 'España'
+ON CONFLICT (nivel, nombre) DO NOTHING;
+INSERT INTO territorio (nivel, codigo_ine, nombre, padre_id)
+    SELECT 'ccaa', '14', 'Murcia, Región de', id FROM territorio
+    WHERE nivel = 'pais' AND nombre = 'España'
+ON CONFLICT (nivel, nombre) DO NOTHING;
+INSERT INTO territorio (nivel, codigo_ine, nombre, padre_id)
+    SELECT 'ccaa', '15', 'Navarra, Comunidad Foral de', id FROM territorio
+    WHERE nivel = 'pais' AND nombre = 'España'
+ON CONFLICT (nivel, nombre) DO NOTHING;
+INSERT INTO territorio (nivel, codigo_ine, nombre, padre_id)
+    SELECT 'ccaa', '16', 'País Vasco', id FROM territorio
+    WHERE nivel = 'pais' AND nombre = 'España'
+ON CONFLICT (nivel, nombre) DO NOTHING;
+INSERT INTO territorio (nivel, codigo_ine, nombre, padre_id)
+    SELECT 'ccaa', '17', 'Rioja, La', id FROM territorio
+    WHERE nivel = 'pais' AND nombre = 'España'
+ON CONFLICT (nivel, nombre) DO NOTHING;
+INSERT INTO territorio (nivel, codigo_ine, nombre, padre_id)
+    SELECT 'ccaa', '18', 'Ceuta', id FROM territorio
+    WHERE nivel = 'pais' AND nombre = 'España'
+ON CONFLICT (nivel, nombre) DO NOTHING;
+INSERT INTO territorio (nivel, codigo_ine, nombre, padre_id)
+    SELECT 'ccaa', '19', 'Melilla', id FROM territorio
+    WHERE nivel = 'pais' AND nombre = 'España'
+ON CONFLICT (nivel, nombre) DO NOTHING;

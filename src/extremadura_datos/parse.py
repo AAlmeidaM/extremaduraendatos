@@ -108,9 +108,21 @@ def _fecha_desde_nombre_periodo(nombre_periodo: str) -> tuple[date, int, str, st
 # "Comunidades y Ciudades Autónomas", las de ámbito provincia usan
 # "Provincias". Si aparece una tabla con otra etiqueta territorial, añadirla
 # aquí (único sitio que hace falta tocar).
+#
+# "totales territoriales" / "total nacional" (2026-08-28): la fila-resumen
+# nacional que trae casi toda tabla de ámbito CCAA (Nombre "Nacional" o
+# "Total Nacional" según la tabla — visto en 7 tablas reales, ver
+# docs/fuentes-ine.md). Antes se descartaba (no estaba en este set, así que
+# cada fila nacional caía siempre al `continue` de abajo sin territorio
+# reconocido). Ahora se reconoce como fila del territorio "España" — hace
+# falta para poder comparar Extremadura con el resto de España sin tener que
+# volver a pedirle ese dato a la API cada vez (ver PROJECT.md §17,
+# "comparativa nacional").
 VARIABLES_TERRITORIALES = {
     "comunidades y ciudades autonomas",
     "provincias",
+    "totales territoriales",
+    "total nacional",
 }
 
 
