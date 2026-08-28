@@ -1,5 +1,45 @@
 # CHANGELOG — Extremadura en Datos
 
+## 2026-08-28 (5)
+
+- **Bug crítico real encontrado y corregido: bucle infinito en
+  `IneClient.fetch_tabla()`.** Al ejecutar por primera vez la ingesta real
+  contra el INE (con Computer Use, tabla `ine_ipc_ccaa`/50913 en modo
+  `--modo historico`), el proceso se quedó colgado varios minutos sin
+  avanzar. Causa: `fetch_tabla()` tenía una "paginación" (`page=2`,
+  `page=3`...) que se disparaba si la respuesta traía 500 series o más,
+  asumida sin haber sido verificada nunca contra el comportamiento real de
+  la API — ni una sola de las pruebas de esta ronda de verificación pasaba
+  por este cliente HTTP, todas se hicieron con JSON capturado directamente
+  del navegador. La API real de `DATOS_TABLA` **no reconoce el parámetro
+  `page`**: lo ignora y devuelve la respuesta completa de nuevo, así que
+  `page=2` traía exactamente lo mismo que `page=1` (≥500 de nuevo) y el
+  bucle no terminaba nunca — cada vuelta repitiendo la descarga completa de
+  la tabla. Corregido eliminando el bucle: una única petición por tabla, ya
+  que toda la verificación tabla por tabla de este proyecto confirma que el
+  INE siempre devuelve todas las series de golpe (se ha visto hasta 1080 en
+  una sola respuesta). Detenido el proceso colgado cerrando la consola
+  (Computer Use) antes de que hiciera más peticiones de más al INE.
+- **Primera ejecución real de principio a fin, con Computer Use.** Con
+  permiso del usuario, se activó Computer Use y se ejecutó de verdad
+  `scripts\setup.ps1` (entorno virtual, base de datos `extremadura_en_datos`
+  en `officelab-postgres`, esquema, tarea programada) en
+  `D:\Projects\extremadura-en-datos` — completado sin errores (aparte de un
+  aviso menor de Git, ver más abajo). Se preparó `ejecutar_todo.bat` (además
+  de `scripts\verificar_carga.py`) para no depender de escribir en una
+  terminal: Computer Use solo puede hacer clic en ventanas de terminal, no
+  teclear en ellas, así que todo el trabajo real se deja en un `.bat` que se
+  lanza con doble clic desde el Explorador de archivos y vuelca su progreso
+  a un archivo de log leíble desde el entorno cloud.
+- **Aviso menor:** `setup.ps1` da por hecho que `git commit` funciona sin
+  comprobar su código de salida; en este PC, sin `user.name`/`user.email`
+  configurados globalmente, el commit falló pero el script siguió como si
+  hubiera ido bien (imprime "[OK] Repositorio Git creado..." de todas
+  formas). No bloquea nada funcional del proyecto (Git es solo control de
+  versiones del código, no de los datos), pero queda pendiente arreglarlo
+  en `setup.ps1` (comprobar `$LASTEXITCODE` tras `git commit`) y configurar
+  la identidad de Git en este PC.
+
 ## 2026-08-28 (4)
 
 - **Verificadas las 17 tablas restantes contra la API real — catálogo

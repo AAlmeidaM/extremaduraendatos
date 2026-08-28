@@ -51,13 +51,29 @@ class IneClient:
         det: int | None = None,
         extra_params: dict[str, Any] | None = None,
     ) -> Any:
-        """Descarga los datos de una tabla completa (DATOS_TABLA), con paginación.
+        """Descarga los datos de una tabla completa (DATOS_TABLA), en una sola petición.
 
         `tip=AM` pide formato amigable + metadatos (nombres de unidad, escala...).
         Sin filtros `tv=` se traen TODAS las series de la tabla (todas las CCAA o
         provincias); el filtrado a Extremadura/Badajoz/Cáceres se hace después,
         en parse.py, por nombre de serie — así no dependemos de adivinar los
         códigos internos de variable/valor que usa el INE puertas adentro.
+
+        ⚠️ Nota histórica (2026-08-28): esta función tenía antes un bucle de
+        "paginación" que pedía `page=2`, `page=3`... mientras la respuesta
+        trajera 500 o más series, asumiendo (sin haberlo verificado nunca)
+        que `DATOS_TABLA` pagina en bloques de 500. Al ejecutar la ingesta
+        real por primera vez contra el INE (tabla 50913, modo histórico) se
+        vio que la API real NO reconoce ese parámetro `page` — devuelve la
+        respuesta completa entera en la primera petición, así que pedir
+        `page=2` devolvía exactamente lo mismo, y el bucle nunca terminaba
+        (bucle infinito real, descubierto porque se quedó machacando la API
+        del INE varios minutos sin avanzar). Se ha comprobado además, en
+        toda la verificación tabla por tabla de este proyecto (ver
+        docs/fuentes-ine.md), que `DATOS_TABLA` siempre devuelve TODAS las
+        series de golpe en una sola respuesta (hasta 1080 series vistas),
+        nunca truncada por el propio INE — por eso ahora es una única
+        petición sin bucle.
         """
         params: dict[str, Any] = {"tip": tip}
         if nult is not None:
@@ -67,43 +83,23 @@ class IneClient:
         if extra_params:
             params.update(extra_params)
 
-        all_items: list[Any] = []
-        page = 1
-        while True:
-            page_params = dict(params)
-            if page > 1:
-                page_params["page"] = page
+        url = f"{self.base_url}/DATOS_TABLA/{tabla_id}"
+        logger.debug("GET %s params=%s", url, params)
+        resp = self._session.get(url, params=params, timeout=self.timeout)
+        if resp.status_code != 200:
+            raise IneApiError(
+                f"HTTP {resp.status_code} al pedir la tabla {tabla_id}: {resp.text[:500]}"
+            )
+        try:
+            data = resp.json()
+        except ValueError as exc:
+            raise IneApiError(
+                f"Respuesta no-JSON para la tabla {tabla_id}: {resp.text[:500]}"
+            ) from exc
 
-            url = f"{self.base_url}/DATOS_TABLA/{tabla_id}"
-            logger.debug("GET %s params=%s", url, page_params)
-            resp = self._session.get(url, params=page_params, timeout=self.timeout)
-            if resp.status_code != 200:
-                raise IneApiError(
-                    f"HTTP {resp.status_code} al pedir la tabla {tabla_id}: {resp.text[:500]}"
-                )
-            try:
-                data = resp.json()
-            except ValueError as exc:
-                raise IneApiError(
-                    f"Respuesta no-JSON para la tabla {tabla_id}: {resp.text[:500]}"
-                ) from exc
-
-            if isinstance(data, dict) and "Nombre" in data and "Descripción" in data:
-                # El INE a veces responde un único objeto de error/aviso en vez de lista.
-                raise IneApiError(f"Respuesta inesperada para tabla {tabla_id}: {data}")
-
-            if not isinstance(data, list):
-                # Puede que para esta tabla la respuesta no sea una lista de series.
-                # Se devuelve tal cual y que parse.py decida — mejor no perder datos
-                # por una suposición equivocada aquí.
-                return data
-
-            all_items.extend(data)
-
-            if len(data) < 500:
-                break
-            page += 1
-            time.sleep(self.delay_seconds)
+        if isinstance(data, dict) and "Nombre" in data and "Descripción" in data:
+            # El INE a veces responde un único objeto de error/aviso en vez de lista.
+            raise IneApiError(f"Respuesta inesperada para tabla {tabla_id}: {data}")
 
         time.sleep(self.delay_seconds)
-        return all_items
+        return data

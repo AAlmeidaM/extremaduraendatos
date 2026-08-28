@@ -35,3 +35,8 @@ datasets/
 # --- Sistema --------------------------------------------------------------------
 .DS_Store
 Thumbs.db
+
+# --- Carpetas de trabajo de Claude (Computer Use / sincronizacion) ------------
+_ejecucion_claude/
+_incoming/
+_to_delete/
