@@ -1,5 +1,25 @@
 # CHANGELOG — Extremadura en Datos
 
+## 2026-08-28 (6)
+
+- **Informe descriptivo puntual: Extremadura vs resto de España.** El usuario
+  pidió explorar los datos con foco en la comparativa regional. La base de
+  datos solo guarda Extremadura/Badajoz/Cáceres (por diseño), así que para
+  comparar con el resto de CCAA se añadieron dos scripts de uso puntual (no
+  tocan el pipeline de producción ni el esquema):
+  - `scripts/exportar_analisis.py` — vuelca `observacion`/`indicador` a CSV
+    para analizarlos fuera de Postgres.
+  - `scripts/fetch_comparativa_nacional.py` — consulta en vivo la API del
+    INE (7 tablas insignia: IPC, paro EPA, IPI, viajeros, IPV, sociedades
+    mercantiles, confianza empresarial) para tener el dato nacional y de
+    todas las CCAA del último periodo, ya que eso no se guarda en la base de
+    datos. Solo lectura, sin credenciales, mismo `IneClient` de producción.
+  Con esos datos se generó un informe HTML de un solo archivo (gráficas de
+  evolución de Extremadura + comparativa Extremadura/Nacional/ranking de
+  CCAA), guardado en `_analisis/` (excluido de Git, es un artefacto
+  generado, no código) y entregado al usuario. `_analisis/` añadida a
+  `.gitignore`.
+
 ## 2026-08-28 (5)
 
 - **Auditoría de documentación tras la carga real: 3 huecos encontrados y
