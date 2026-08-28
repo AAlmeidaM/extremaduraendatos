@@ -2,6 +2,22 @@
 
 ## 2026-08-28 (5)
 
+- **Auditoría de documentación tras la carga real: 3 huecos encontrados y
+  corregidos.** El usuario pidió comprobar que todo quedaba bien
+  documentado tras la carga histórica real. Se encontró: (1) `PROJECT.md`
+  §1 seguía diciendo `Estado: Development` pese a tener datos reales en
+  producción — corregido a `Production`; (2) los scripts nuevos
+  `scripts/reporte_estructura.py` (informe de estructura y volumen de
+  datos, usado para responder al usuario cuántos datos hay de cada tipo) y
+  `reporte_estructura.bat` (lanzador sin interacción, mismo patrón que
+  `ejecutar_todo.bat`) estaban en el PC pero sin commitear ni mencionados
+  en ningún sitio — documentados en `README.md` y `PROJECT.md` §12, y
+  commiteados; (3) `README.md` tenía datos obsoletos de antes de la
+  verificación completa (hablaba de "4 indicadores" y de un aviso de
+  "antes de fiarte de la ingesta" que ya no aplica con el catálogo 24/24
+  verificado) — actualizado, y se añadió mención a `--modo historico` y a
+  cómo ver los datos con DBeaver.
+
 - **Bug crítico real encontrado y corregido: bucle infinito en
   `IneClient.fetch_tabla()`.** Al ejecutar por primera vez la ingesta real
   contra el INE (con Computer Use, tabla `ine_ipc_ccaa`/50913 en modo

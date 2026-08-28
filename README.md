@@ -39,11 +39,13 @@ de datos y el rol del proyecto (llamando a
 esquema, inicializa Git y registra la tarea programada diaria. Ver el
 detalle en [PROJECT.md §12](PROJECT.md#12-cómo-iniciar).
 
-**Antes de fiarte de la ingesta**, comprueba el JSON real del INE (ver el
-aviso en [docs/fuentes-ine.md](docs/fuentes-ine.md)):
+El catálogo completo (24 tablas, 23 activas) está verificado contra la API
+real del INE y contra una carga real en producción (2026-08-28) — ver
+`docs/fuentes-ine.md` y `PROJECT.md` §17 para el detalle. Si el INE cambia el
+formato de alguna tabla en el futuro:
 
 ```powershell
-.venv\Scripts\python -m extremadura_datos.inspect_table 75803
+.venv\Scripts\python -m extremadura_datos.inspect_table <id_tabla>
 ```
 
 ---
@@ -51,12 +53,23 @@ aviso en [docs/fuentes-ine.md](docs/fuentes-ine.md)):
 ## Uso
 
 ```powershell
-# Ingesta completa (los 4 indicadores)
+# Carga histórica completa (una sola vez, tras el setup)
+.venv\Scripts\python -m extremadura_datos.ingest --modo historico
+
+# Ingesta incremental (la que usa la tarea programada diaria)
 .venv\Scripts\python -m extremadura_datos.ingest
 
-# Solo uno
-.venv\Scripts\python -m extremadura_datos.ingest --solo ine_epa_ccaa
+# Solo un indicador
+.venv\Scripts\python -m extremadura_datos.ingest --solo ine_ipc_ccaa
+
+# Resumen de estructura y volumen de datos cargado
+.venv\Scripts\python scripts\reporte_estructura.py
 ```
+
+Para explorar los datos con un cliente gráfico: instalar
+[DBeaver Community](https://dbeaver.io) (gratuito) y crear una conexión
+PostgreSQL con los datos de `.env` (`DATABASE_URL`). La vista `v_observacion`
+junta indicador + territorio + observación en una sola tabla.
 
 ---
 
@@ -79,7 +92,8 @@ cp .env.example .env
 ```
 src\extremadura_datos\   Código fuente (paquete Python)
 sql\                      Esquema de base de datos (001_schema.sql)
-scripts\                  setup.ps1, run_ingesta.ps1
+scripts\                  setup.ps1, run_ingesta.ps1, reporte_estructura.py,
+                          verificar_carga.py
 tests\                    Pruebas (sin red; usan un JSON de ejemplo)
 docs\                     Documentación técnica adicional (fuentes-ine.md)
 ```

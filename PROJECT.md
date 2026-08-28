@@ -16,7 +16,7 @@
 |---|---|
 | **Nombre** | Extremadura en Datos |
 | **Slug** | `extremadura-en-datos` |
-| **Estado** | Development |
+| **Estado** | Production (datos reales cargados, 2026-08-28) |
 | **Creado** | 2026-08-26 |
 | **Responsable** | almei |
 
@@ -186,6 +186,21 @@ pide los últimos periodos, es la que usa la tarea diaria):
 
 Ambas admiten `--solo <codigo>` para un único indicador (ver
 `indicadores.py`), p.ej. `--modo historico --solo ine_ipc_ccaa`.
+
+Para ver un resumen legible de la estructura del esquema y del volumen de
+datos cargado (totales, por territorio, por categoría, por periodicidad y
+detalle por indicador):
+
+```powershell
+.venv\Scripts\python.exe scripts\reporte_estructura.py
+```
+
+Para explorar los datos libremente con un cliente gráfico (recomendado):
+instalar [DBeaver Community](https://dbeaver.io) (gratuito) y crear una
+conexión PostgreSQL con los datos de `.env` (`DATABASE_URL`: host, puerto,
+base de datos, usuario y contraseña). La vista `v_observacion` ya trae
+indicador + territorio + observación en una sola tabla, lista para
+`SELECT * FROM v_observacion ...` sin tener que escribir los JOIN a mano.
 
 Requisito previo: `officelab-postgres` en marcha
 (`cd E:\Lab\services\_shared ; docker compose up -d`).
