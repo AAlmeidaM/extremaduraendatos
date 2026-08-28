@@ -371,16 +371,15 @@ Destino: `F:\Archive\Backups\extremadura-en-datos\`
     `ine_soc_mercantiles_disueltas_provincia`, `ine_hipotecas_provincia`)
     **no se han tocado** — decisión explícita del usuario, esas tablas del
     INE no traen desglose por CCAA que aprovechar.
-  Validado en un PostgreSQL de prueba en el entorno cloud (no en la base de
-  datos de producción) con la tabla real 8027 (confianza empresarial): 18
-  territorios distintos (17 CCAA + España; esa tabla en concreto no publica
-  Ceuta/Melilla), upsert idempotente (misma cuenta de filas en 2 pasadas).
-  **Pendiente de ejecutar de verdad en producción:** hace falta relanzar
-  `ingest.py --modo historico` en el PC (con Computer Use, mismo patrón de
-  `ejecutar_todo.bat`) para descargar el histórico completo con el nuevo
-  alcance y cargarlo en `extremadura_en_datos` — bloqueado momentáneamente
-  porque el PC estaba con la sesión bloqueada. Ver CHANGELOG 2026-08-28 (7)
-  para el detalle y el estado exacto en el momento de escribir esto.
+  Validado primero en un PostgreSQL de prueba en el entorno cloud (tabla
+  real 8027: 18 territorios distintos, upsert idempotente en 2 pasadas) y
+  después **confirmado en producción**: se relanzó `ingest.py --modo
+  historico` en el PC real (con Computer Use, `reingesta_ccaa.bat`) y
+  terminó sin errores. Resultado real en `extremadura_en_datos`: de 72.012
+  a **1.158.441 observaciones** (6.729 series, 22 territorios — los 19
+  CCAA/ciudades autónomas + España + Badajoz + Cáceres), ningún indicador
+  activo a 0 filas. España (fila nacional) sola aporta 71.332 observaciones,
+  ya lista para comparar sin volver a pedirle nada a la API del INE.
 - **Filtrado por nombre, no por código interno.** Se filtra Extremadura /
   Badajoz / Cáceres buscando esas palabras (sin acentos) en el nombre de
   serie que devuelve el INE, no por los códigos numéricos internos de

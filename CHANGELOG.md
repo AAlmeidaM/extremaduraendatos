@@ -34,6 +34,16 @@
     falta poder controlar el PC (estaba bloqueado en el momento de escribir
     esto).
 
+- **✅ Confirmado en producción.** Se relanzó `ingest.py --modo historico`
+  en el PC real (Computer Use, `reingesta_ccaa.bat`) tras aplicar los
+  cambios anteriores. Terminó sin errores (estado 0, sin excepciones en el
+  log). Resultado real en `extremadura_en_datos`: de 72.012 a **1.158.441
+  observaciones** (6.729 series, 22 territorios), ningún indicador activo a
+  0 filas. La fila nacional (`España`) por sí sola aporta 71.332
+  observaciones. Ya se puede comparar Extremadura contra cualquier CCAA o
+  contra el total nacional directamente con SQL, sin llamar a la API del
+  INE en cada consulta.
+
 ## 2026-08-28 (6)
 
 - **Informe descriptivo puntual: Extremadura vs resto de España.** El usuario
