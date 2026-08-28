@@ -1,0 +1,152 @@
+# CHANGELOG — Extremadura en Datos
+
+## 2026-08-28 (4)
+
+- **Verificadas las 17 tablas restantes contra la API real — catálogo
+  completo (24/24) verificado.** Con esto se cierra la ronda de
+  verificación empezada en (2) y (3): las 24 tablas del catálogo se han
+  descargado de verdad de `servicios.ine.es` y pasado por `parsear_tabla()`.
+  Tablas de esta tanda: 13913, 13923, 26061, 26002 (ya vistas antes del
+  corte), y 25992, 8027, 2074, 2942, 2940, 10839, 3204, 6149, 25171, 6147,
+  6062, 6063, 75803.
+- **Prueba consolidada de carga real:** las 23 tablas activas (ver más
+  abajo) se han cargado juntas, dos veces seguidas, en un PostgreSQL 16 de
+  prueba limpio (esquema recién aplicado) con el código real (`db.py`) —
+  382 filas de observación tras la primera pasada, 382 tras la segunda
+  (idempotencia confirmada: mismo recuento, mismos valores, ninguna fila
+  duplicada). Es la prueba de extremo a extremo más completa hasta ahora.
+- **Hallazgo real (no un bug de código): la tabla 10839 (Gasto de los
+  turistas internacionales, EGATUR) no desglosa Extremadura.** Solo publica
+  por CCAA las seis con más turismo internacional (Andalucía, Baleares,
+  Canarias, Cataluña, C. Valenciana, Madrid); el resto va agregado en
+  "Otras Comunidades Autónomas", sin desglose propio — verificado
+  descargando la tabla completa y comprobando qué CCAA aparecen en
+  `MetaData`. `ine_turismo_gasto_turistas_ccaa` se marca `activo=False` en
+  `indicadores.py` (con el porqué en un comentario) para no reintentarla en
+  vano cada día. Catálogo: 24 indicadores, 23 activos.
+- **Confirmado, sin necesidad de cambios:** varias tablas nuevas usan
+  etiquetas de `T3_Variable` territoriales distintas a las ya conocidas
+  para el desglose nacional (`"Totales Territoriales"`, `"Total Nacional"`)
+  — no afectan al filtrado porque esas etiquetas no están en
+  `VARIABLES_TERRITORIALES` y la fila "Total Nacional" nunca coincide con
+  el filtro por subcadena de respaldo; las CCAA/provincias reales de estas
+  mismas tablas sí usan las etiquetas ya soportadas
+  (`"Comunidades y Ciudades Autónomas"`, `"Provincias"`). Tampoco es un bug
+  que una tabla traiga alguna serie con `"Data": []` (tabla 2942): significa
+  que esa combinación concreta no tiene dato publicado para el periodo
+  pedido, y simplemente no genera fila — es el comportamiento correcto.
+- **Mejora de método (no de código): filtrar por JavaScript en la propia
+  página del navegador antes de extraer texto.** Para tablas grandes,
+  `get_page_text` con `max_chars` alto resultó poco fiable (el resultado
+  variaba entre llamadas idénticas, probablemente por el árbol JSON
+  colapsable de Chrome) y truncaba antes de llegar a Extremadura en el
+  orden alfabético (tabla 6063). Solución: ejecutar
+  `JSON.parse(document.body.innerText)` y filtrar por territorio dentro de
+  la propia página (`javascript_tool`), devolviendo solo las series
+  relevantes — pequeño, fiable y determinista. Recomendado para cualquier
+  tabla nueva grande en el futuro, en vez de aumentar `max_chars` a ciegas.
+
+## 2026-08-28 (3)
+
+- **Verificadas 4 tablas más contra la API real** (13912, 2941, 77196,
+  76926) — total 7 de 24. Esta vez, además de ejecutar `parsear_tabla()`,
+  se cargaron de verdad en un PostgreSQL 16 de prueba con el código real
+  (`db.get_or_create_indicador`, `db.upsert_observaciones`), repitiendo la
+  carga para comprobar idempotencia (criterio de éxito de `PROJECT.md` §3).
+  Las 7 tablas cargan y son idempotentes.
+- **Bug real encontrado y corregido: `nombre_origen` no es clave fiable**
+  (tabla 2941, turismo): dos series con `Nombre` y `MetaData` idénticos pero
+  `COD` y valores distintos rompían la carga contra Postgres de verdad
+  (`CardinalityViolation: ON CONFLICT DO UPDATE command cannot affect row a
+  second time`). Arreglado con `serie.clave_natural` (columna generada =
+  `codigo_origen` si existe, si no `nombre_origen`) como clave real en el
+  `UNIQUE` y en el `ON CONFLICT`; la caché de `upsert_observaciones` usa la
+  misma lógica. `sql/001_schema.sql` y `db.py` actualizados (con `ALTER
+  TABLE`/migración idempotente para el esquema anterior).
+- **Segundo formato de respuesta del INE, encontrado en las tablas CRE**
+  (77196, 76926): sin `COD` ni `T3_Unidad`/`T3_Escala`/`T3_TipoDato`, y cada
+  punto de `Data` trae `NombrePeriodo` (p.ej. `"2024(A)"`, `"2023(P)"`) en
+  vez de `Fecha`/`Anyo`/`T3_Periodo`. `parse.py` ahora reconoce ambos
+  formatos por punto (`_fecha_desde_nombre_periodo()`).
+- **Corregido el id de tabla de `ine_cre_provincia`:** tenía `72946`
+  (tomado del "identificador-api" de datos.gob.es), que da 404 en
+  `DATOS_TABLA`. Localizado el id real (`76926`) navegando la operación de
+  Contabilidad Regional de España en ine.es, y verificado contra la API.
+- Tests nuevos para el formato `NombrePeriodo` (con y sin la letra "A").
+  Catálogo total sigue en 24 indicadores (solo cambió el id de uno).
+
+## 2026-08-28 (2)
+
+- **Parseo verificado y corregido contra la API real del INE** (no solo
+  documentación): se descargó JSON real de 3 tablas — 50913 (IPC, CCAA),
+  3996 (EPA paro, provincia) y 6150 (Compraventa vivienda, CCAA y provincia
+  mezclados) — y se ejecutó `parsear_tabla()` contra ellas. Esto reveló
+  varios campos mal asumidos:
+  - `Fecha` es un string ISO 8601 con offset, no epoch en milisegundos
+    (`datetime.fromtimestamp` habría petado). Ahora se usa
+    `datetime.fromisoformat`.
+  - Unidad/escala/tipo de dato van en `T3_Unidad`/`T3_Escala`/`T3_TipoDato`
+    (strings simples), no en `Unidad`/`Escala`/`TipoDato` ni como
+    `{"Nombre": ...}`.
+  - El territorio se resuelve ahora primero vía el array `MetaData` de cada
+    serie (`T3_Variable: "Comunidades y Ciudades Autónomas"` / `"Provincias"`),
+    mucho más fiable que la subcadena en `Nombre` (que se mantiene como
+    respaldo si una tabla no trae MetaData reconocible).
+  - `T3_Periodo` (p.ej. "M12", "T4") se usa tal cual si el INE lo da, en vez
+    de derivarlo siempre de la fecha.
+  - Se eliminó `FIELD_MAP` (ya no hacía falta con nombres de campo reales
+    confirmados); el punto único de ajuste sigue siendo `parse.py`.
+- **Nuevo:** `serie.atributos` (JSONB, con índice GIN) — guarda el resto de
+  dimensiones de cada serie (rubro, sexo, tipo/régimen de vivienda...) tal y
+  como las da `MetaData`, ya separadas del territorio. Permite filtrar/agrupar
+  por esas dimensiones sin volver a parsear `nombre_origen`. `db.py` y
+  `sql/001_schema.sql` actualizados; la columna se añade también con
+  `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` por si el esquema ya estaba
+  aplicado.
+- **Nuevo modo de carga histórica:** `ingest.py --modo historico` pide TODO
+  el histórico de cada tabla (`nult` sin límite) en vez de los últimos
+  periodos; pensado para la carga inicial de cada fuente. El modo por
+  defecto (`incremental`, el que usa la tarea diaria) no cambia.
+- Tests (`tests/test_parse.py`) reescritos con fixtures que reproducen la
+  estructura real (antes eran inventados con nombres de campo equivocados);
+  añadidas pruebas para el respaldo por subcadena, para `serie.atributos`, y
+  para el caso "sin match" en tablas provinciales.
+- Documentación (`docs/fuentes-ine.md`, `PROJECT.md`) actualizada: ya no dice
+  "no verificado contra la API real" — documenta qué se verificó, cómo, y qué
+  queda pendiente (verificar las 21 tablas restantes una por una si dan
+  problemas).
+
+## 2026-08-28
+
+- El usuario aportó `Datos_Extremadura_Mensual.xlsx` con 21 fuentes del INE
+  (Precios, Industria y Empresa, Turismo, Vivienda, Empleo). Añadidas al
+  catálogo (`src\extremadura_datos\indicadores.py`), sustituyendo la tabla
+  72989 (EPA por provincia, provisional) por la 3996 del Excel.
+- **Cambio de modelo de datos:** añadida la tabla `serie` entre `indicador` y
+  `observacion` (ver `sql/001_schema.sql` y `docs\fuentes-ine.md`). Motivo:
+  varias de las tablas nuevas (IPC, turismo, industria) tienen muchas series
+  por territorio y periodo (por rubro, tipo de alojamiento, sector...), y el
+  modelo anterior las hubiera colapsado en una sola fila. Cambio hecho
+  reescribiendo el esquema directamente (el proyecto aún no se había
+  desplegado, sin datos que migrar).
+- Añadida vista `v_observacion` para consultar todo unido en una fila.
+- `db.py`: `get_or_create_serie`, `upsert_observaciones` ahora resuelve
+  serie antes de volcar. `parse.py`: captura también el código de serie del
+  INE (`COD`) cuando está presente.
+- Test nuevo (`test_varias_series_mismo_territorio_y_periodo_no_se_pierden`)
+  que fija en la suite el caso que motivó el cambio.
+- Catálogo total: 24 indicadores (antes 4).
+
+## 2026-08-26
+
+- Creación del proyecto. Fase 1: ingesta + base de datos (sin API todavía).
+- Esquema inicial en PostgreSQL (`fuente`, `territorio`, `indicador`,
+  `observacion`, `carga_log`), pensado para admitir varias fuentes.
+- Ingesta de 4 tablas del INE (EPA y Contabilidad Regional de España, a nivel
+  CCAA y provincial), filtradas a Extremadura/Badajoz/Cáceres.
+- `scripts\setup.ps1` (entorno, base de datos, esquema, Git, tarea programada
+  diaria) y `scripts\run_ingesta.ps1` (ejecución + log).
+- Pendiente: el usuario ejecute `scripts\setup.ps1` en el PC y verifique con
+  `inspect_table.py` que el parseo del JSON del INE coincide con la
+  respuesta real (no se pudo probar en el entorno donde se generó este
+  proyecto — ver `PROJECT.md` §17).

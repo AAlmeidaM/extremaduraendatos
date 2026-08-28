@@ -1,0 +1,5 @@
+# Instalado también vía pyproject.toml (pip install -e .), pero se deja este
+# archivo porque es el que consulta PROJECT_STANDARD.md / scripts/setup.ps1.
+requests>=2.31
+psycopg2-binary>=2.9
+python-dotenv>=1.0
