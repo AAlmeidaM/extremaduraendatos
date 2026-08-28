@@ -10,7 +10,9 @@ Catálogo actual: las 21 tablas de `Datos_Extremadura_Mensual.xlsx` (aportado
 por el usuario el 2026-08-28 — categorías Precios, Industria y Empresa,
 Turismo, Vivienda y Empleo) más 3 que ya estaban del bloque de Economía /
 Mercado laboral (ver docs/fuentes-ine.md para el detalle y los enlaces de
-cada tabla, y el porqué de cada elección).
+cada tabla, y el porqué de cada elección), más 2 tablas de Demografía
+(población por CCAA/provincia, añadidas el mismo día para poder normalizar
+por habitante — ver la nota junto a esas dos entradas más abajo).
 
 Nota sobre `ine_epa_paro_provincia`: sustituye a la tabla 72989 que se usó en
 la primera versión de este proyecto (mismo concepto — tasas de paro/actividad
@@ -84,6 +86,19 @@ class Indicador:
     # ejecución vía PUBLICACIONES_OPERACION y lo guarda en la base.
     ine_operacion_id: int | None = None
     ine_publicacion_id: int | None = None
+    # naturaleza_dato (2026-08-28): la naturaleza estadística *por defecto* de
+    # esta tabla — 'indice' (base 100 en un año, IPC/IPI/ICN/IPV/confianza),
+    # 'tasa' (porcentaje, EPA/paro), 'conteo' (recuento absoluto: viviendas,
+    # sociedades, pernoctaciones...), 'monetario' (importe: coste laboral,
+    # PIB/VAB, gasto turístico) o 'promedio' (media continua: estancia media,
+    # tiempo de trabajo). Sirve para no mezclar naturalezas al analizar (ver
+    # v_analisis en sql/001_schema.sql) y para decidir cuándo tiene sentido
+    # normalizar por población (solo 'conteo'). Es solo el valor *por
+    # defecto* de la tabla: dentro de una misma tabla puede haber series de
+    # otra naturaleza (p.ej. IPC trae tanto el índice como su variación
+    # mensual/anual, que SÍ es una tasa) — v_analisis corrige esos casos
+    # mirando el `tipo_dato` real de cada observación, no este campo a solas.
+    naturaleza_dato: str | None = None
 
 
 INDICADORES: list[Indicador] = [
@@ -98,6 +113,7 @@ INDICADORES: list[Indicador] = [
         filtro_territorio=_TODAS_CCAA,
         ine_operacion_id=25,
         ine_publicacion_id=8,
+        naturaleza_dato="indice",
     ),
     # --- Industria y Empresa ----------------------------------------------
     Indicador(
@@ -110,6 +126,7 @@ INDICADORES: list[Indicador] = [
         filtro_territorio=_TODAS_CCAA,
         ine_operacion_id=125,
         ine_publicacion_id=24,
+        naturaleza_dato="conteo",
     ),
     Indicador(
         codigo="ine_soc_mercantiles_constituidas_ccaa",
@@ -121,6 +138,7 @@ INDICADORES: list[Indicador] = [
         filtro_territorio=_TODAS_CCAA,
         ine_operacion_id=125,
         ine_publicacion_id=24,
+        naturaleza_dato="conteo",
     ),
     Indicador(
         codigo="ine_soc_mercantiles_disueltas_provincia",
@@ -132,6 +150,7 @@ INDICADORES: list[Indicador] = [
         filtro_territorio=_PROVINCIA,
         ine_operacion_id=125,
         ine_publicacion_id=24,
+        naturaleza_dato="conteo",
     ),
     Indicador(
         codigo="ine_ipi_ccaa",
@@ -143,6 +162,7 @@ INDICADORES: list[Indicador] = [
         filtro_territorio=_TODAS_CCAA,
         ine_operacion_id=26,
         ine_publicacion_id=10,
+        naturaleza_dato="indice",
     ),
     Indicador(
         codigo="ine_icn_industria_ccaa",
@@ -154,6 +174,7 @@ INDICADORES: list[Indicador] = [
         filtro_territorio=_TODAS_CCAA,
         ine_operacion_id=42,
         ine_publicacion_id=6,
+        naturaleza_dato="indice",
     ),
     Indicador(
         codigo="ine_icn_comercio_menor_ccaa",
@@ -165,6 +186,7 @@ INDICADORES: list[Indicador] = [
         filtro_territorio=_TODAS_CCAA,
         ine_operacion_id=32,
         ine_publicacion_id=5,
+        naturaleza_dato="indice",
     ),
     Indicador(
         codigo="ine_confianza_empresarial_ccaa",
@@ -176,6 +198,7 @@ INDICADORES: list[Indicador] = [
         filtro_territorio=_TODAS_CCAA,
         ine_operacion_id=163,
         ine_publicacion_id=61,
+        naturaleza_dato="indice",
     ),
     # --- Turismo -----------------------------------------------------------
     Indicador(
@@ -188,6 +211,7 @@ INDICADORES: list[Indicador] = [
         filtro_territorio=_TODAS_CCAA,
         ine_operacion_id=238,
         ine_publicacion_id=1,
+        naturaleza_dato="conteo",
     ),
     Indicador(
         codigo="ine_turismo_viajeros_pernoctaciones_ccaa",
@@ -199,6 +223,7 @@ INDICADORES: list[Indicador] = [
         filtro_territorio=_TODAS_CCAA,
         ine_operacion_id=238,
         ine_publicacion_id=1,
+        naturaleza_dato="conteo",
     ),
     Indicador(
         codigo="ine_turismo_establecimientos_ccaa",
@@ -210,6 +235,7 @@ INDICADORES: list[Indicador] = [
         filtro_territorio=_TODAS_CCAA,
         ine_operacion_id=238,
         ine_publicacion_id=1,
+        naturaleza_dato="conteo",
     ),
     Indicador(
         codigo="ine_turismo_estancia_media_ccaa",
@@ -221,6 +247,7 @@ INDICADORES: list[Indicador] = [
         filtro_territorio=_TODAS_CCAA,
         ine_operacion_id=238,
         ine_publicacion_id=1,
+        naturaleza_dato="promedio",
     ),
     Indicador(
         # Desactivada: verificado contra la API real el 2026-08-28 (tabla
@@ -242,6 +269,7 @@ INDICADORES: list[Indicador] = [
         activo=False,
         ine_operacion_id=329,
         ine_publicacion_id=408,
+        naturaleza_dato="monetario",
     ),
     # --- Vivienda ------------------------------------------------------------
     Indicador(
@@ -254,6 +282,7 @@ INDICADORES: list[Indicador] = [
         filtro_territorio=_PROVINCIA,
         ine_operacion_id=40,
         ine_publicacion_id=3,
+        naturaleza_dato="conteo",
     ),
     Indicador(
         codigo="ine_compraventa_vivienda_ccaa_provincia",
@@ -265,6 +294,7 @@ INDICADORES: list[Indicador] = [
         filtro_territorio=_TODAS_CCAA_Y_PROVINCIA,
         ine_operacion_id=7,
         ine_publicacion_id=28,
+        naturaleza_dato="conteo",
     ),
     Indicador(
         codigo="ine_viviendas_transmitidas_ccaa_provincia",
@@ -276,6 +306,7 @@ INDICADORES: list[Indicador] = [
         filtro_territorio=_TODAS_CCAA_Y_PROVINCIA,
         ine_operacion_id=7,
         ine_publicacion_id=28,
+        naturaleza_dato="conteo",
     ),
     Indicador(
         codigo="ine_ipv_ccaa",
@@ -287,6 +318,7 @@ INDICADORES: list[Indicador] = [
         filtro_territorio=_TODAS_CCAA,
         ine_operacion_id=15,
         ine_publicacion_id=21,
+        naturaleza_dato="indice",
     ),
     Indicador(
         codigo="ine_fincas_rusticas_ccaa_provincia",
@@ -298,6 +330,7 @@ INDICADORES: list[Indicador] = [
         filtro_territorio=_TODAS_CCAA_Y_PROVINCIA,
         ine_operacion_id=7,
         ine_publicacion_id=28,
+        naturaleza_dato="conteo",
     ),
     # --- Empleo ------------------------------------------------------------
     Indicador(
@@ -310,6 +343,7 @@ INDICADORES: list[Indicador] = [
         filtro_territorio=_TODAS_CCAA,
         ine_operacion_id=303,
         ine_publicacion_id=360,
+        naturaleza_dato="monetario",
     ),
     Indicador(
         codigo="ine_tiempo_trabajo_ccaa",
@@ -321,6 +355,7 @@ INDICADORES: list[Indicador] = [
         filtro_territorio=_TODAS_CCAA,
         ine_operacion_id=303,
         ine_publicacion_id=360,
+        naturaleza_dato="promedio",
     ),
     Indicador(
         codigo="ine_epa_paro_provincia",
@@ -332,6 +367,7 @@ INDICADORES: list[Indicador] = [
         filtro_territorio=_PROVINCIA,
         ine_operacion_id=293,
         ine_publicacion_id=330,
+        naturaleza_dato="tasa",
     ),
     # --- Ya existían (no vienen del Excel, se mantienen) ------------------
     Indicador(
@@ -344,6 +380,7 @@ INDICADORES: list[Indicador] = [
         filtro_territorio=_TODAS_CCAA,
         ine_operacion_id=293,
         ine_publicacion_id=330,
+        naturaleza_dato="tasa",
     ),
     Indicador(
         codigo="ine_cre_provincia",
@@ -363,6 +400,7 @@ INDICADORES: list[Indicador] = [
         ine_operacion_id=257,
         # ine_publicacion_id: ver nota junto a la clase Indicador -- se
         # autodescubre en tiempo de ejecución (calendario.py).
+        naturaleza_dato="monetario",
     ),
     Indicador(
         codigo="ine_cre_ccaa",
@@ -375,6 +413,44 @@ INDICADORES: list[Indicador] = [
         ine_operacion_id=257,
         # ine_publicacion_id: ver nota junto a la clase Indicador -- se
         # autodescubre en tiempo de ejecución (calendario.py).
+        naturaleza_dato="monetario",
+    ),
+    # --- Demografía (2026-08-28) ------------------------------------------
+    # Población por CCAA/provincia y sexo — "Cifras Oficiales de Población
+    # (Revisión del Padrón municipal)", serie DPOP del INE. Se añade para
+    # poder normalizar por habitante los indicadores de tipo 'conteo'
+    # (sociedades, viviendas, pernoctaciones...) al compararlos entre
+    # territorios de tamaño muy distinto (ver v_analisis en
+    # sql/001_schema.sql). Tablas localizadas vía datos.gob.es (no vía la API
+    # del INE directamente, sin acceso de red desde este entorno) — id de
+    # tabla y alcance confirmados (2853 = CCAA+ciudades autónomas, anual,
+    # 1996 en adelante; 2852 = provincias, misma serie), pero la FORMA exacta
+    # de la respuesta (nombre de la dimensión "Sexo", etiqueta para "ambos
+    # sexos") NO se ha verificado aún contra la API real -- pendiente de
+    # confirmar en la primera ingesta real (motor genérico: si el parseo
+    # fallara, se registraría en carga_log con 0 filas, sin romper el resto
+    # de la ingesta). ine_operacion_id se deja sin rellenar a propósito hasta
+    # confirmarlo: sin él, calendario.py simplemente ingiere siempre este
+    # indicador (dato anual, coste insignificante).
+    Indicador(
+        codigo="ine_poblacion_ccaa",
+        tabla_id_externo="2853",
+        nombre="Población por comunidades y ciudades autónomas y sexo",
+        categoria="demografia",
+        nivel_territorial="ccaa",
+        periodicidad="anual",
+        filtro_territorio=_TODAS_CCAA,
+        naturaleza_dato="conteo",
+    ),
+    Indicador(
+        codigo="ine_poblacion_provincia",
+        tabla_id_externo="2852",
+        nombre="Población por provincias y sexo",
+        categoria="demografia",
+        nivel_territorial="provincia",
+        periodicidad="anual",
+        filtro_territorio=_PROVINCIA,
+        naturaleza_dato="conteo",
     ),
 ]
 

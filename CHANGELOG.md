@@ -1,5 +1,32 @@
 # CHANGELOG — Extremadura en Datos
 
+## 2026-08-28 (9)
+
+- **Catálogo ampliado a 26 tablas (demografía) + naturaleza del dato +
+  normalización por población + vista `v_analisis`.** Tras explicar en
+  detalle qué mide cada tabla y cómo interpretarla estadísticamente, se
+  implementó "todo lo necesario para tener el dato correcto":
+  - Dos indicadores nuevos: `ine_poblacion_ccaa` (tabla 2853) e
+    `ine_poblacion_provincia` (tabla 2852) — población por CCAA/provincia y
+    sexo (serie DPOP del Padrón municipal). Localizadas vía datos.gob.es;
+    **la forma exacta de la respuesta no se ha podido verificar contra la
+    API real desde este entorno** (sin acceso de red) — pendiente de
+    confirmar en la primera ingesta real.
+  - `indicador.naturaleza_dato` (columna nueva, con CHECK): clasifica cada
+    tabla por defecto como `indice` / `tasa` / `conteo` / `monetario` /
+    `promedio`. Rellenada para las 26 tablas del catálogo.
+  - `v_poblacion`: población de referencia por territorio y año.
+  - `v_analisis`: vista nueva para consultar de aquí en adelante — excluye el
+    secreto estadístico por defecto, corrige la naturaleza del dato por
+    observación (no solo por tabla, para casos como el IPC que mezcla índice
+    y variación), y añade `valor_por_1000_habitantes` para los conteos
+    absolutos, usando la población más reciente conocida de cada territorio.
+  Validado con datos sintéticos en un PostgreSQL de prueba (esquema
+  idempotente, clasificación índice/tasa correcta dentro de una misma tabla,
+  secreto excluido, normalización per cápita verificada con dos territorios
+  de tamaño muy distinto). Se activa solo en la próxima ejecución de la tarea
+  programada diaria, sin pasos manuales.
+
 ## 2026-08-28 (8)
 
 - **El calendario oficial de publicaciones del INE gobierna ahora la ingesta

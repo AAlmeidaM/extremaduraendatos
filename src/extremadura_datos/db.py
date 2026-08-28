@@ -116,16 +116,18 @@ def get_or_create_indicador(conn, indicador: Indicador) -> int:
             """
             INSERT INTO indicador
                 (fuente_id, tabla_id_externo, codigo, nombre, categoria,
-                 nivel_territorial, periodicidad, ine_operacion_id, ine_publicacion_id)
+                 nivel_territorial, periodicidad, ine_operacion_id, ine_publicacion_id,
+                 naturaleza_dato)
             SELECT id, %(tabla_id_externo)s, %(codigo)s, %(nombre)s, %(categoria)s,
                    %(nivel_territorial)s, %(periodicidad)s, %(ine_operacion_id)s,
-                   %(ine_publicacion_id)s
+                   %(ine_publicacion_id)s, %(naturaleza_dato)s
             FROM fuente WHERE codigo = 'ine'
             ON CONFLICT (codigo) DO UPDATE SET
                 nombre = EXCLUDED.nombre,
                 categoria = EXCLUDED.categoria,
                 nivel_territorial = EXCLUDED.nivel_territorial,
                 periodicidad = EXCLUDED.periodicidad,
+                naturaleza_dato = EXCLUDED.naturaleza_dato,
                 -- COALESCE(catálogo, lo que ya hubiera en la BD): así una
                 -- corrección en indicadores.py siempre gana, pero un
                 -- ine_publicacion_id autodescubierto en tiempo de ejecución
@@ -144,6 +146,7 @@ def get_or_create_indicador(conn, indicador: Indicador) -> int:
                 "periodicidad": indicador.periodicidad,
                 "ine_operacion_id": indicador.ine_operacion_id,
                 "ine_publicacion_id": indicador.ine_publicacion_id,
+                "naturaleza_dato": indicador.naturaleza_dato,
             },
         )
         row = cur.fetchone()

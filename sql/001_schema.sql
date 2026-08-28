@@ -297,3 +297,106 @@ INSERT INTO territorio (nivel, codigo_ine, nombre, padre_id)
     SELECT 'ccaa', '19', 'Melilla', id FROM territorio
     WHERE nivel = 'pais' AND nombre = 'España'
 ON CONFLICT (nivel, nombre) DO NOTHING;
+
+-- =============================================================================
+--  Naturaleza del dato + normalización por población + vista final de
+--  análisis (2026-08-28) — ver indicadores.py (campo naturaleza_dato) y
+--  PROJECT.md §17. Objetivo: que al consultar los datos no se mezclen sin
+--  querer naturalezas distintas (índice/tasa/conteo/monetario/promedio) ni
+--  se comparen conteos absolutos entre territorios de tamaño muy distinto
+--  sin normalizar por población, y que el secreto estadístico (observacion.
+--  secreto) quede excluido por defecto en vez de tratarse como un cero.
+-- =============================================================================
+
+ALTER TABLE indicador ADD COLUMN IF NOT EXISTS naturaleza_dato TEXT;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'indicador_naturaleza_dato_check'
+    ) THEN
+        ALTER TABLE indicador ADD CONSTRAINT indicador_naturaleza_dato_check
+            CHECK (naturaleza_dato IS NULL OR naturaleza_dato IN
+                ('indice', 'tasa', 'conteo', 'monetario', 'promedio'));
+    END IF;
+END $$;
+
+-- Población de referencia por territorio y año (tablas 2853/2852, ver
+-- indicadores.py "Demografía"). Se filtra a la serie de "ambos sexos" —
+-- ILIKE defensivo porque la etiqueta exacta que usa el INE para esa
+-- categoría en estas dos tablas concretas no se ha podido verificar sin
+-- acceso de red desde este entorno (pendiente de confirmar en la primera
+-- ingesta real; si no calzase, esta vista devolvería 0 filas sin romper
+-- nada más — revisar entonces s.atributos tal cual llega).
+CREATE OR REPLACE VIEW v_poblacion AS
+SELECT
+    s.territorio_id,
+    o.anyo,
+    o.valor AS poblacion
+FROM observacion o
+JOIN serie s      ON s.id = o.serie_id
+JOIN indicador i  ON i.id = s.indicador_id
+WHERE i.codigo IN ('ine_poblacion_ccaa', 'ine_poblacion_provincia')
+  AND NOT o.secreto
+  AND (
+        s.atributos = '{}'::jsonb
+        OR s.atributos->'Sexo'->>'nombre' ILIKE 'total%'
+        OR s.atributos->'Sexo'->>'nombre' ILIKE 'ambos%'
+      );
+
+-- Vista final de análisis: como v_observacion, pero (a) excluye el secreto
+-- estadístico por defecto, (b) expone la naturaleza efectiva de cada
+-- observación (la de la tabla, salvo que su propio tipo_dato indique que es
+-- en realidad una tasa/variación — p.ej. IPC trae tanto el índice como su
+-- variación mensual/anual dentro de la misma tabla), y (c) cuando esa
+-- naturaleza efectiva es 'conteo', añade el valor normalizado por 1.000
+-- habitantes usando la población conocida más reciente (<= año de la
+-- observación) para ese mismo territorio — así Extremadura y Madrid se
+-- pueden comparar en un conteo absoluto sin que el tamaño de cada uno
+-- distorsione la lectura.
+CREATE OR REPLACE VIEW v_analisis AS
+SELECT
+    o.id,
+    f.codigo            AS fuente,
+    i.codigo            AS indicador,
+    i.nombre            AS indicador_nombre,
+    i.categoria,
+    i.naturaleza_dato   AS naturaleza_dato_tabla,
+    CASE
+        WHEN o.tipo_dato ILIKE '%variaci%' OR o.tipo_dato ILIKE '%tasa%' THEN 'tasa'
+        ELSE i.naturaleza_dato
+    END                 AS naturaleza_dato_efectiva,
+    t.id                AS territorio_id,
+    t.nivel             AS territorio_nivel,
+    t.nombre            AS territorio,
+    s.nombre_origen     AS serie,
+    s.atributos         AS serie_atributos,
+    o.periodo_fecha,
+    o.anyo,
+    o.periodo_codigo,
+    o.valor,
+    o.unidad,
+    o.escala,
+    o.tipo_dato,
+    p.anyo              AS poblacion_anyo_referencia,
+    p.poblacion,
+    CASE
+        WHEN i.codigo NOT IN ('ine_poblacion_ccaa', 'ine_poblacion_provincia')
+             AND (CASE WHEN o.tipo_dato ILIKE '%variaci%' OR o.tipo_dato ILIKE '%tasa%'
+                       THEN 'tasa' ELSE i.naturaleza_dato END) = 'conteo'
+             AND p.poblacion IS NOT NULL AND p.poblacion <> 0
+        THEN round((o.valor / p.poblacion) * 1000, 4)
+    END                 AS valor_por_1000_habitantes
+FROM observacion o
+JOIN serie s      ON s.id = o.serie_id
+JOIN indicador i  ON i.id = s.indicador_id
+JOIN fuente f     ON f.id = i.fuente_id
+JOIN territorio t ON t.id = s.territorio_id
+LEFT JOIN LATERAL (
+    SELECT vp.anyo, vp.poblacion
+    FROM v_poblacion vp
+    WHERE vp.territorio_id = t.id AND vp.anyo <= o.anyo
+    ORDER BY vp.anyo DESC
+    LIMIT 1
+) p ON TRUE
+WHERE NOT o.secreto;

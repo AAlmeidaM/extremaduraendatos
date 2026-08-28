@@ -431,6 +431,58 @@ Destino: `F:\Archive\Backups\extremadura-en-datos\`
   cada indicador consultará su calendario por primera vez (autodescubriendo
   `ine_publicacion_id` en las CRE) y a partir de ahí decidirá cada día si
   toca o no.
+- **✅ Naturaleza del dato, normalización por población y vista final de
+  análisis `v_analisis` (2026-08-28).** El usuario pidió, tras una
+  explicación detallada de qué mide cada tabla, que se preparase "todo lo
+  necesario para tener el dato correcto" de cara a interpretarlo
+  estadísticamente. Se implementaron las cuatro cosas identificadas en esa
+  conversación:
+  - **Catálogo ampliado a 26 tablas (demografía):** `ine_poblacion_ccaa`
+    (tabla 2853, INE — Población por CCAA/ciudades autónomas y sexo, anual,
+    serie DPOP del Padrón municipal) e `ine_poblacion_provincia` (tabla
+    2852, misma serie a nivel provincia). Localizadas vía datos.gob.es (sin
+    acceso de red a la API del INE desde este entorno para verificarlas
+    directamente) — **pendiente de confirmar en la primera ingesta real**
+    que la forma exacta de la respuesta (etiqueta de "ambos sexos" en la
+    dimensión Sexo) coincide con lo asumido en `v_poblacion`; si no calzase,
+    esa vista devolvería 0 filas sin romper el resto de la ingesta (motor
+    genérico, mismo mecanismo de tolerancia a fallos que el resto del
+    catálogo). `ine_operacion_id` se deja sin rellenar a propósito en estas
+    dos hasta confirmarlo — sin él, `calendario.py` las ingiere siempre
+    (dato anual, coste insignificante).
+  - **`indicador.naturaleza_dato`** (nueva columna, con CHECK): la
+    naturaleza estadística *por defecto* de cada tabla — `indice` (IPC, IPI,
+    ICN ×2, IPV, confianza empresarial), `tasa` (EPA/paro ×2), `conteo`
+    (sociedades, viviendas, pernoctaciones, hipotecas, población), `monetario`
+    (coste laboral, PIB/VAB, gasto turístico) o `promedio` (estancia media,
+    tiempo de trabajo). Rellenada para las 26 tablas.
+  - **`v_poblacion`**: población de referencia por territorio y año, filtrada
+    a la serie combinada (ambos sexos) de las dos tablas de demografía.
+  - **`v_analisis`**: la vista pensada para consultar de aquí en adelante
+    (sustituye a `v_observacion` para análisis, que se mantiene tal cual por
+    compatibilidad). Añade: (a) **excluye el secreto estadístico por
+    defecto** (`WHERE NOT secreto`) en vez de dejarlo como si fuera un cero;
+    (b) `naturaleza_dato_efectiva`, que corrige la naturaleza por defecto de
+    la tabla cuando el `tipo_dato` real de esa observación concreta indica
+    que es en realidad una tasa/variación (p.ej. el IPC trae tanto el índice
+    como su variación mensual/anual en la misma tabla — con solo el campo
+    por tabla se etiquetarían mal esas series); (c) cuando la naturaleza
+    efectiva es `conteo`, añade `valor_por_1000_habitantes`, calculado con la
+    población conocida más reciente (`<=` año de la observación) para ese
+    territorio vía `LEFT JOIN LATERAL` sobre `v_poblacion` — así un conteo
+    absoluto de Extremadura y de Madrid (o cualquier otro par de territorios
+    de tamaño distinto) se puede comparar de forma justa sin tener que hacer
+    el cálculo aparte cada vez.
+  Validado en el PostgreSQL de prueba del entorno cloud con datos sintéticos
+  (esquema idempotente en dos pasadas; una serie de índice y otra de
+  variación mensual de la misma tabla clasificadas correctamente distinto;
+  una fila marcada `secreto` desaparece de `v_analisis`; sociedades
+  constituidas de Extremadura (100, 1M habitantes) y Madrid (3.000, 6M
+  habitantes) dan 0,10 y 0,50 por 1.000 habitantes respectivamente — Madrid
+  proporcionalmente más alto pese al conteo bruto ser 30× mayor, exactamente
+  el tipo de distorsión que esto corrige). Igual que con el calendario, no
+  hizo falta script manual ni Computer Use: se activa solo en la próxima
+  ejecución de la tarea programada diaria.
 - **Filtrado por nombre, no por código interno.** Se filtra Extremadura /
   Badajoz / Cáceres buscando esas palabras (sin acentos) en el nombre de
   serie que devuelve el INE, no por los códigos numéricos internos de
