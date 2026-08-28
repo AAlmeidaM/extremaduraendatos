@@ -49,6 +49,15 @@ consultas puntuales a la API en cada visita a la web. Ver la entrada del
 2026-08-28 en §17 ("Ampliación a comparativa nacional") para el diseño y el
 estado de esta ampliación.
 
+**Cómo se construirá la web (decidido el 2026-08-28, aún sin implementar):**
+la web NO consulta directamente las tablas crudas (`observacion`/`serie`) ni
+recalcula tendencias en cada visita. Habrá una capa intermedia — un script
+Python (pandas) que se ejecuta cada vez que se actualiza la base de datos, y
+que guarda su resultado (tendencias, medias móviles, rankings...) en una
+tabla propia — y la web se construye solo sobre esa tabla de salida. Ver
+§4 (diagrama) y la entrada correspondiente en §17 para el detalle y lo que
+queda por decidir.
+
 **Criterio de éxito de esta fase:** ejecutar la ingesta y comprobar en
 PostgreSQL que la tabla `observacion` tiene filas de los 24 indicadores
 catalogados (ver `src\extremadura_datos\indicadores.py`) para
@@ -76,6 +85,30 @@ Programador de tareas (diario) -> run_ingesta.ps1 -> python -m extremadura_datos
                                                             v
                                     PostgreSQL 17 compartido (base "extremadura_en_datos")
                                     fuente / territorio / indicador / serie / observacion / carga_log
+                                    calendario_publicacion -- v_observacion / v_poblacion / v_analisis
+                                                            |
+                                                            v
+                        [PLANEADO 2026-08-28, NO IMPLEMENTADO TODAVÍA]
+                        script Python (pandas) de análisis -- se ejecuta cada vez
+                        que se actualiza la base de datos (enganchado al pipeline
+                        de ingesta; punto exacto de enganche aún por decidir: ¿al
+                        final de ingest.py, o como paso aparte en run_ingesta.ps1
+                        / reingesta_ccaa.bat, igual que hoy se llama
+                        verificar_carga.py?). Lee de v_analisis, calcula lo que en
+                        SQL puro es incómodo (medias móviles, variación
+                        intermensual/interanual propia, rankings de CCAA,
+                        posible estacionalidad -- alcance exacto por definir
+                        cuando se aborde) y GUARDA el resultado en una tabla
+                        propia de PostgreSQL (nombre por decidir, p.ej.
+                        `analisis_web`) -- no es una VIEW/MATERIALIZED VIEW de
+                        SQL puro porque el cálculo necesita pandas, no solo SQL.
+                                                            |
+                                                            v
+                        [PLANEADO, NO IMPLEMENTADO TODAVÍA] web visual moderna
+                        -- se construye SOLO sobre esa tabla de salida, nunca
+                        directamente sobre observacion/serie/v_analisis. Así la
+                        web queda desacoplada del modelo relacional crudo y de
+                        cualquier cálculo pesado (que ya viene hecho).
 ```
 
 Esquema pensado para admitir más fuentes sin cambiarlo, y para tablas con
@@ -83,8 +116,18 @@ muchas series por territorio (rubro, tipo de alojamiento, sector...): cada
 tabla (`indicador`) tiene N series (`serie`, una por territorio +
 combinación de dimensiones tal y como la nombra la fuente), y cada serie
 tiene sus valores en el tiempo (`observacion`). Ver
-`docs\fuentes-ine.md` §"Modelo de datos" y §"Ampliar a otras fuentes", y la
-vista `v_observacion` para consultar todo ya unido en una sola fila.
+`docs\fuentes-ine.md` §"Modelo de datos" y §"Ampliar a otras fuentes", y las
+vistas `v_observacion` (todo unido, crudo) y `v_analisis` (naturaleza del
+dato + secreto excluido + normalización por población — ver §17) para
+consultar sin repetir los JOIN cada vez.
+
+**Sobre las dos piezas planeadas y aún no implementadas** (script de análisis
+y web): no ejecutar nada ni crear archivos para esto todavía sin retomarlo
+explícitamente con el usuario — esta sección solo documenta la decisión de
+diseño para no perderla entre sesiones. Cuando se retome, hay que decidir
+primero: (a) el punto exacto de enganche al pipeline de ingesta, (b) el
+alcance concreto del "análisis de tendencia" (el usuario lo dejó abierto,
+"etc etc"), y (c) el nombre y esquema de la tabla de salida.
 
 ---
 
@@ -483,6 +526,43 @@ Destino: `F:\Archive\Backups\extremadura-en-datos\`
   el tipo de distorsión que esto corrige). Igual que con el calendario, no
   hizo falta script manual ni Computer Use: se activa solo en la próxima
   ejecución de la tarea programada diaria.
+- **⏳ Plan de arquitectura para la web (decidido el 2026-08-28, NO
+  implementado todavía — no empezar sin retomarlo antes explícitamente).**
+  Al preguntar "de cara a publicar un dashboard, ¿guardo el dato ya
+  modificado o transformo al consultar?", la respuesta fue: transforma al
+  consultar (para eso está `v_analisis`, ver arriba) mientras el volumen sea
+  el actual — no hace falta materializar nada todavía. El usuario, sin
+  embargo, decidió adelantar el diseño de la futura web con una pieza
+  intermedia adicional, en vez de que la web consulte `v_analisis`
+  directamente. Queda así en tres capas (ver diagrama en §4):
+  1. **Ingesta cruda** (ya implementada): `ingest.py` → PostgreSQL
+     (`observacion`/`serie`/`indicador`...) + `v_analisis`.
+  2. **Capa de análisis, un script Python (pandas)** — ESTA ES LA PIEZA
+     NUEVA, no implementada — que se ejecuta **cada vez que se actualiza la
+     base de datos** (enganchado al pipeline de ingesta diario; el punto
+     exacto todavía no se ha decidido: ¿una llamada más al final de
+     `ingest.py::main()`, o un paso aparte invocado desde
+     `run_ingesta.ps1`, igual que hoy se llama a `verificar_carga.py` al
+     final de `reingesta_ccaa.bat`?). Este script lee de `v_analisis` y
+     calcula ahí "análisis de tendencia etc." — el usuario lo dejó abierto a
+     propósito; candidatos razonables cuando se concrete: medias móviles,
+     variación intermensual/interanual calculada por nosotros (no solo la
+     que ya viene como serie separada del INE), rankings de CCAA por
+     indicador y periodo, quizás desestacionalización — **no dar esto por
+     cerrado, hay que hablarlo con el usuario antes de implementarlo**.
+     El resultado se **guarda** (no es una `VIEW`/`MATERIALIZED VIEW` de SQL
+     puro, precisamente porque el cálculo necesita pandas) en una tabla
+     propia de PostgreSQL — nombre y esquema exacto también por decidir
+     (candidato de partida: `analisis_web`).
+  3. **Web visual moderna** (fase siguiente, sin empezar): se construye
+     **solo** sobre la tabla de salida de la capa 2, nunca directamente
+     sobre `observacion`/`serie`/`v_analisis` — así queda desacoplada del
+     modelo relacional crudo y de cualquier cálculo pesado, que llega ya
+     hecho.
+  Antes de implementar esto, decidir con el usuario: (a) el punto de
+  enganche al pipeline, (b) el alcance concreto del análisis de tendencia,
+  (c) el nombre/esquema de la tabla de salida, y (d) qué stack se usará para
+  "la web visual moderna" (aún no elegido).
 - **Filtrado por nombre, no por código interno.** Se filtra Extremadura /
   Badajoz / Cáceres buscando esas palabras (sin acentos) en el nombre de
   serie que devuelve el INE, no por los códigos numéricos internos de

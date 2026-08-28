@@ -1,5 +1,18 @@
 # CHANGELOG — Extremadura en Datos
 
+## 2026-08-28 (10)
+
+- **Documentado (solo documentación, nada implementado): plan de arquitectura
+  de tres capas para la futura web.** El usuario decidió que, antes de
+  construir la web, habrá un script Python (pandas) de análisis de tendencia
+  que se ejecuta cada vez que se actualiza la base de datos y guarda su
+  resultado en una tabla propia; la web se construirá solo sobre esa tabla,
+  nunca directamente sobre `v_analisis`/`observacion`. Ver PROJECT.md §4
+  (diagrama actualizado) y §17 para el detalle completo y lo que queda por
+  decidir (punto de enganche al pipeline, alcance exacto del análisis,
+  nombre de la tabla de salida, stack de la web). No empezar a implementarlo
+  sin retomarlo explícitamente.
+
 ## 2026-08-28 (9)
 
 - **Catálogo ampliado a 26 tablas (demografía) + naturaleza del dato +
