@@ -298,6 +298,24 @@ Destino: `F:\Archive\Backups\extremadura-en-datos\`
   Detalle completo, tabla por tabla, en `docs\fuentes-ine.md`. Si el INE
   cambia el formato de alguna tabla en el futuro, usar `inspect_table.py`
   para volver a verificarla.
+- **✅ Carga histórica real completada en producción (2026-08-28, con
+  Computer Use).** Con permiso del usuario se activó el control remoto del
+  PC y se ejecutó de verdad `scripts\setup.ps1` (creó `.env`, la base de
+  datos `extremadura_en_datos` en `officelab-postgres`, aplicó el esquema y
+  registró la tarea programada) y después
+  `ingest.py --modo historico` para las 23 tablas activas. Resultado: **72.012
+  observaciones reales** en la base de datos, ninguna tabla activa a 0 filas.
+  En el camino se encontró y arregló un bug real y serio en
+  `IneClient.fetch_tabla()` (bucle infinito: pedía "página siguiente" a la
+  API del INE con un parámetro `page` que la API real no reconoce, así que
+  nunca dejaba de pedir la misma respuesta completa una y otra vez) — ver
+  CHANGELOG 2026-08-28 (5) para el detalle. Este era el primer uso real del
+  cliente HTTP contra el INE en todo el proyecto: toda la verificación
+  anterior (24/24 tablas) se había hecho con JSON capturado vía navegador,
+  sin pasar nunca por `fetch_tabla()`. Ya no hay nada pendiente del usuario
+  para tener el pipeline funcionando: falta solo revisar la tarea programada
+  diaria dentro de un tiempo para confirmar que la ingesta incremental
+  automática también funciona sin supervisión.
 - **Filtrado por nombre, no por código interno.** Se filtra Extremadura /
   Badajoz / Cáceres buscando esas palabras (sin acentos) en el nombre de
   serie que devuelve el INE, no por los códigos numéricos internos de

@@ -40,6 +40,17 @@
   en `setup.ps1` (comprobar `$LASTEXITCODE` tras `git commit`) y configurar
   la identidad de Git en este PC.
 
+- **✅ Confirmado en producción: carga histórica completa real, con éxito.**
+  Tras el arreglo del bucle infinito, se relanzó `ejecutar_todo.bat` y
+  `ingest.py --modo historico` terminó sin errores para las 23 tablas
+  activas: **72.012 observaciones** en la base de datos real
+  (`extremadura_en_datos` en `officelab-postgres`), todas con datos (ninguna
+  de las 23 activas quedó a 0 filas), con históricos que van desde 1999
+  (`ine_turismo_viajeros_pernoctaciones_ccaa`) hasta mediados de 2026 según
+  la tabla. Verificado con `scripts/verificar_carga.py` (nuevo, cuenta filas
+  por indicador directamente en Postgres). Primer commit de Git también
+  resuelto (faltaba `user.name`/`user.email` en este PC).
+
 ## 2026-08-28 (4)
 
 - **Verificadas las 17 tablas restantes contra la API real — catálogo
