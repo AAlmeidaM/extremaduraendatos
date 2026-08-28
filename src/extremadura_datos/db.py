@@ -116,15 +116,23 @@ def get_or_create_indicador(conn, indicador: Indicador) -> int:
             """
             INSERT INTO indicador
                 (fuente_id, tabla_id_externo, codigo, nombre, categoria,
-                 nivel_territorial, periodicidad)
+                 nivel_territorial, periodicidad, ine_operacion_id, ine_publicacion_id)
             SELECT id, %(tabla_id_externo)s, %(codigo)s, %(nombre)s, %(categoria)s,
-                   %(nivel_territorial)s, %(periodicidad)s
+                   %(nivel_territorial)s, %(periodicidad)s, %(ine_operacion_id)s,
+                   %(ine_publicacion_id)s
             FROM fuente WHERE codigo = 'ine'
             ON CONFLICT (codigo) DO UPDATE SET
                 nombre = EXCLUDED.nombre,
                 categoria = EXCLUDED.categoria,
                 nivel_territorial = EXCLUDED.nivel_territorial,
-                periodicidad = EXCLUDED.periodicidad
+                periodicidad = EXCLUDED.periodicidad,
+                -- COALESCE(catálogo, lo que ya hubiera en la BD): así una
+                -- corrección en indicadores.py siempre gana, pero un
+                -- ine_publicacion_id autodescubierto en tiempo de ejecución
+                -- (ver calendario.py, caso CRE) no se pisa a NULL cada día
+                -- solo porque el catálogo estático no lo trae.
+                ine_operacion_id = COALESCE(EXCLUDED.ine_operacion_id, indicador.ine_operacion_id),
+                ine_publicacion_id = COALESCE(EXCLUDED.ine_publicacion_id, indicador.ine_publicacion_id)
             RETURNING id
             """,
             {
@@ -134,11 +142,107 @@ def get_or_create_indicador(conn, indicador: Indicador) -> int:
                 "categoria": indicador.categoria,
                 "nivel_territorial": indicador.nivel_territorial,
                 "periodicidad": indicador.periodicidad,
+                "ine_operacion_id": indicador.ine_operacion_id,
+                "ine_publicacion_id": indicador.ine_publicacion_id,
             },
         )
         row = cur.fetchone()
     conn.commit()
     return row[0]
+
+
+# --- Calendario oficial de publicaciones del INE (ver calendario.py) --------
+
+def calendario_reciente(conn, indicador_id: int, dias: int) -> bool:
+    """True si ya se consultó el calendario del INE para este indicador en
+    los últimos `dias` días (evita golpear la API en cada ejecución diaria
+    cuando el calendario de una operación apenas cambia)."""
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT 1 FROM indicador
+            WHERE id = %s
+              AND calendario_actualizado_en IS NOT NULL
+              AND calendario_actualizado_en > now() - (%s || ' days')::interval
+            """,
+            (indicador_id, dias),
+        )
+        return cur.fetchone() is not None
+
+
+def marcar_calendario_actualizado(conn, indicador_id: int) -> None:
+    with conn.cursor() as cur:
+        cur.execute(
+            "UPDATE indicador SET calendario_actualizado_en = now() WHERE id = %s",
+            (indicador_id,),
+        )
+    conn.commit()
+
+
+def guardar_ine_publicacion_id(conn, indicador_id: int, publicacion_id: int) -> None:
+    """Persiste el ine_publicacion_id autodescubierto (caso CRE, ver
+    indicadores.py) para no tener que volver a resolverlo cada vez."""
+    with conn.cursor() as cur:
+        cur.execute(
+            "UPDATE indicador SET ine_publicacion_id = %s WHERE id = %s",
+            (publicacion_id, indicador_id),
+        )
+    conn.commit()
+
+
+def upsert_fechas_calendario(conn, indicador_id: int, fechas: list[tuple]) -> None:
+    """`fechas`: lista de (fecha: date, periodo_referencia: str | None)."""
+    if not fechas:
+        return
+    registros = [(indicador_id, fecha, periodo) for fecha, periodo in fechas]
+    with conn.cursor() as cur:
+        psycopg2.extras.execute_values(
+            cur,
+            """
+            INSERT INTO calendario_publicacion (indicador_id, fecha_publicacion, periodo_referencia)
+            VALUES %s
+            ON CONFLICT (indicador_id, fecha_publicacion) DO UPDATE SET
+                periodo_referencia = EXCLUDED.periodo_referencia
+            """,
+            registros,
+        )
+    conn.commit()
+
+
+def hay_fechas_calendario(conn, indicador_id: int) -> bool:
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT 1 FROM calendario_publicacion WHERE indicador_id = %s LIMIT 1",
+            (indicador_id,),
+        )
+        return cur.fetchone() is not None
+
+
+def hay_publicacion_pendiente(conn, indicador_id: int) -> bool:
+    """True si hay al menos una fecha de publicación ya vencida (<= hoy) que
+    todavía no se ha marcado como procesada."""
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT 1 FROM calendario_publicacion
+            WHERE indicador_id = %s AND NOT procesada AND fecha_publicacion <= CURRENT_DATE
+            LIMIT 1
+            """,
+            (indicador_id,),
+        )
+        return cur.fetchone() is not None
+
+
+def marcar_publicaciones_procesadas(conn, indicador_id: int) -> None:
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            UPDATE calendario_publicacion SET procesada = TRUE
+            WHERE indicador_id = %s AND NOT procesada AND fecha_publicacion <= CURRENT_DATE
+            """,
+            (indicador_id,),
+        )
+    conn.commit()
 
 
 def upsert_observaciones(

@@ -68,6 +68,22 @@ class Indicador:
     # de la serie del INE para quedarse con esa fila. Ver parse.py:_normaliza.
     filtro_territorio: tuple[str, ...] = field(default_factory=tuple)
     activo: bool = True
+    # ine_operacion_id / ine_publicacion_id (2026-08-28): identifican la
+    # "operación" y "publicación" del INE a las que pertenece esta tabla —
+    # hace falta para consultar su calendario oficial de publicaciones
+    # (PUBLICACIONES_OPERACION / PUBLICACIONFECHA_PUBLICACION) y así poder
+    # gobernar la ingesta diaria (ver calendario.py y PROJECT.md §17: esto
+    # sustituye a la decisión anterior de "llamar siempre, el upsert es
+    # idempotente"). Se sacan de SERIES_TABLA/{tabla_id_externo}, que ya trae
+    # FK_Operacion y FK_Publicacion en cada serie — no hizo falta ningún
+    # rodeo por SERIE/{id}?det=2 (que no devuelve esos campos). Verificado
+    # contra la API real el 2026-08-28 para las 24 tablas del catálogo.
+    # ine_publicacion_id=None en ine_cre_provincia/ine_cre_ccaa porque esas
+    # tablas usan el formato "CRE" de SERIES_TABLA (sin COD/FK_Publicacion en
+    # cada serie, ver parse.py) — calendario.py lo autodescubre en tiempo de
+    # ejecución vía PUBLICACIONES_OPERACION y lo guarda en la base.
+    ine_operacion_id: int | None = None
+    ine_publicacion_id: int | None = None
 
 
 INDICADORES: list[Indicador] = [
@@ -80,6 +96,8 @@ INDICADORES: list[Indicador] = [
         nivel_territorial="ccaa",
         periodicidad="mensual",
         filtro_territorio=_TODAS_CCAA,
+        ine_operacion_id=25,
+        ine_publicacion_id=8,
     ),
     # --- Industria y Empresa ----------------------------------------------
     Indicador(
@@ -90,6 +108,8 @@ INDICADORES: list[Indicador] = [
         nivel_territorial="ccaa",
         periodicidad="mensual",
         filtro_territorio=_TODAS_CCAA,
+        ine_operacion_id=125,
+        ine_publicacion_id=24,
     ),
     Indicador(
         codigo="ine_soc_mercantiles_constituidas_ccaa",
@@ -99,6 +119,8 @@ INDICADORES: list[Indicador] = [
         nivel_territorial="ccaa",
         periodicidad="mensual",
         filtro_territorio=_TODAS_CCAA,
+        ine_operacion_id=125,
+        ine_publicacion_id=24,
     ),
     Indicador(
         codigo="ine_soc_mercantiles_disueltas_provincia",
@@ -108,6 +130,8 @@ INDICADORES: list[Indicador] = [
         nivel_territorial="provincia",
         periodicidad="mensual",
         filtro_territorio=_PROVINCIA,
+        ine_operacion_id=125,
+        ine_publicacion_id=24,
     ),
     Indicador(
         codigo="ine_ipi_ccaa",
@@ -117,6 +141,8 @@ INDICADORES: list[Indicador] = [
         nivel_territorial="ccaa",
         periodicidad="mensual",
         filtro_territorio=_TODAS_CCAA,
+        ine_operacion_id=26,
+        ine_publicacion_id=10,
     ),
     Indicador(
         codigo="ine_icn_industria_ccaa",
@@ -126,6 +152,8 @@ INDICADORES: list[Indicador] = [
         nivel_territorial="ccaa",
         periodicidad="mensual",
         filtro_territorio=_TODAS_CCAA,
+        ine_operacion_id=42,
+        ine_publicacion_id=6,
     ),
     Indicador(
         codigo="ine_icn_comercio_menor_ccaa",
@@ -135,6 +163,8 @@ INDICADORES: list[Indicador] = [
         nivel_territorial="ccaa",
         periodicidad="mensual",
         filtro_territorio=_TODAS_CCAA,
+        ine_operacion_id=32,
+        ine_publicacion_id=5,
     ),
     Indicador(
         codigo="ine_confianza_empresarial_ccaa",
@@ -144,6 +174,8 @@ INDICADORES: list[Indicador] = [
         nivel_territorial="ccaa",
         periodicidad="trimestral",
         filtro_territorio=_TODAS_CCAA,
+        ine_operacion_id=163,
+        ine_publicacion_id=61,
     ),
     # --- Turismo -----------------------------------------------------------
     Indicador(
@@ -154,6 +186,8 @@ INDICADORES: list[Indicador] = [
         nivel_territorial="ccaa",
         periodicidad="mensual",
         filtro_territorio=_TODAS_CCAA,
+        ine_operacion_id=238,
+        ine_publicacion_id=1,
     ),
     Indicador(
         codigo="ine_turismo_viajeros_pernoctaciones_ccaa",
@@ -163,6 +197,8 @@ INDICADORES: list[Indicador] = [
         nivel_territorial="ccaa",
         periodicidad="mensual",
         filtro_territorio=_TODAS_CCAA,
+        ine_operacion_id=238,
+        ine_publicacion_id=1,
     ),
     Indicador(
         codigo="ine_turismo_establecimientos_ccaa",
@@ -172,6 +208,8 @@ INDICADORES: list[Indicador] = [
         nivel_territorial="ccaa",
         periodicidad="mensual",
         filtro_territorio=_TODAS_CCAA,
+        ine_operacion_id=238,
+        ine_publicacion_id=1,
     ),
     Indicador(
         codigo="ine_turismo_estancia_media_ccaa",
@@ -181,6 +219,8 @@ INDICADORES: list[Indicador] = [
         nivel_territorial="ccaa",
         periodicidad="mensual",
         filtro_territorio=_TODAS_CCAA,
+        ine_operacion_id=238,
+        ine_publicacion_id=1,
     ),
     Indicador(
         # Desactivada: verificado contra la API real el 2026-08-28 (tabla
@@ -200,6 +240,8 @@ INDICADORES: list[Indicador] = [
         periodicidad="mensual",
         filtro_territorio=_TODAS_CCAA,
         activo=False,
+        ine_operacion_id=329,
+        ine_publicacion_id=408,
     ),
     # --- Vivienda ------------------------------------------------------------
     Indicador(
@@ -210,6 +252,8 @@ INDICADORES: list[Indicador] = [
         nivel_territorial="provincia",
         periodicidad="mensual",
         filtro_territorio=_PROVINCIA,
+        ine_operacion_id=40,
+        ine_publicacion_id=3,
     ),
     Indicador(
         codigo="ine_compraventa_vivienda_ccaa_provincia",
@@ -219,6 +263,8 @@ INDICADORES: list[Indicador] = [
         nivel_territorial="ccaa_y_provincia",
         periodicidad="mensual",
         filtro_territorio=_TODAS_CCAA_Y_PROVINCIA,
+        ine_operacion_id=7,
+        ine_publicacion_id=28,
     ),
     Indicador(
         codigo="ine_viviendas_transmitidas_ccaa_provincia",
@@ -228,6 +274,8 @@ INDICADORES: list[Indicador] = [
         nivel_territorial="ccaa_y_provincia",
         periodicidad="mensual",
         filtro_territorio=_TODAS_CCAA_Y_PROVINCIA,
+        ine_operacion_id=7,
+        ine_publicacion_id=28,
     ),
     Indicador(
         codigo="ine_ipv_ccaa",
@@ -237,6 +285,8 @@ INDICADORES: list[Indicador] = [
         nivel_territorial="ccaa",
         periodicidad="trimestral",
         filtro_territorio=_TODAS_CCAA,
+        ine_operacion_id=15,
+        ine_publicacion_id=21,
     ),
     Indicador(
         codigo="ine_fincas_rusticas_ccaa_provincia",
@@ -246,6 +296,8 @@ INDICADORES: list[Indicador] = [
         nivel_territorial="ccaa_y_provincia",
         periodicidad="mensual",
         filtro_territorio=_TODAS_CCAA_Y_PROVINCIA,
+        ine_operacion_id=7,
+        ine_publicacion_id=28,
     ),
     # --- Empleo ------------------------------------------------------------
     Indicador(
@@ -256,6 +308,8 @@ INDICADORES: list[Indicador] = [
         nivel_territorial="ccaa",
         periodicidad="trimestral",
         filtro_territorio=_TODAS_CCAA,
+        ine_operacion_id=303,
+        ine_publicacion_id=360,
     ),
     Indicador(
         codigo="ine_tiempo_trabajo_ccaa",
@@ -265,6 +319,8 @@ INDICADORES: list[Indicador] = [
         nivel_territorial="ccaa",
         periodicidad="trimestral",
         filtro_territorio=_TODAS_CCAA,
+        ine_operacion_id=303,
+        ine_publicacion_id=360,
     ),
     Indicador(
         codigo="ine_epa_paro_provincia",
@@ -274,6 +330,8 @@ INDICADORES: list[Indicador] = [
         nivel_territorial="provincia",
         periodicidad="trimestral",
         filtro_territorio=_PROVINCIA,
+        ine_operacion_id=293,
+        ine_publicacion_id=330,
     ),
     # --- Ya existían (no vienen del Excel, se mantienen) ------------------
     Indicador(
@@ -284,6 +342,8 @@ INDICADORES: list[Indicador] = [
         nivel_territorial="ccaa",
         periodicidad="trimestral",
         filtro_territorio=_TODAS_CCAA,
+        ine_operacion_id=293,
+        ine_publicacion_id=330,
     ),
     Indicador(
         codigo="ine_cre_provincia",
@@ -300,6 +360,9 @@ INDICADORES: list[Indicador] = [
         nivel_territorial="provincia",
         periodicidad="anual",
         filtro_territorio=_PROVINCIA,
+        ine_operacion_id=257,
+        # ine_publicacion_id: ver nota junto a la clase Indicador -- se
+        # autodescubre en tiempo de ejecución (calendario.py).
     ),
     Indicador(
         codigo="ine_cre_ccaa",
@@ -309,6 +372,9 @@ INDICADORES: list[Indicador] = [
         nivel_territorial="ccaa",
         periodicidad="anual",
         filtro_territorio=_TODAS_CCAA,
+        ine_operacion_id=257,
+        # ine_publicacion_id: ver nota junto a la clase Indicador -- se
+        # autodescubre en tiempo de ejecución (calendario.py).
     ),
 ]
 

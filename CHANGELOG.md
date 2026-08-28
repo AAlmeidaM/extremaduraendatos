@@ -1,5 +1,40 @@
 # CHANGELOG — Extremadura en Datos
 
+## 2026-08-28 (8)
+
+- **El calendario oficial de publicaciones del INE gobierna ahora la ingesta
+  diaria.** Sustituye a la decisión "llamar siempre, el upsert es
+  idempotente" (ver §17 de PROJECT.md). Se descubrió que
+  `SERIES_TABLA/{tabla_id_externo}` ya trae `FK_Operacion`/`FK_Publicacion`
+  por serie (no hizo falta el rodeo por `SERIE/{id}?det=2` que se había
+  planeado inicialmente, verificado que no devuelve esos campos). Con eso:
+  - `indicadores.py`: `Indicador` añade `ine_operacion_id` /
+    `ine_publicacion_id`, mapeados para las 24 tablas del catálogo (las 2
+    tablas CRE se quedan sin `ine_publicacion_id` en el catálogo — se
+    autodescubre en tiempo de ejecución).
+  - `sql/001_schema.sql`: columnas nuevas en `indicador` y tabla nueva
+    `calendario_publicacion` (fechas de publicación por indicador, con
+    `procesada`).
+  - Módulo nuevo `src/extremadura_datos/calendario.py`: `debe_ingerir_hoy()`
+    / `marcar_procesado()`, con refresco cada 3 días y red de seguridad
+    (nunca deja de ingerir por falta de datos de calendario o fallo de red).
+  - `ingest.py` (`--modo incremental`): consulta el calendario antes de cada
+    llamada real a la API y se salta las tablas sin publicación pendiente.
+  Validado en un PostgreSQL de prueba en el entorno cloud: esquema idempotente
+  (aplicado dos veces sin cambios) y lógica de gobernanza probada con un
+  cliente HTTP simulado (fallo de red → se ingiere igual; fecha vencida sin
+  procesar → se ingiere y se marca; sin fecha vencida → se salta;
+  autodescubrimiento del `ine_publicacion_id` de las tablas CRE → funciona y
+  persiste). Se despliega solo con los archivos actualizados en el PC — no
+  hizo falta ningún script manual ni Computer Use: `ensure_schema()` reaplica
+  el esquema en cada arranque de `ingest.py`, así que se activa en la
+  siguiente ejecución de la tarea programada diaria.
+- Limpieza: se retiran de la carpeta del proyecto los scripts de
+  investigación puntual usados para este descubrimiento
+  (`investigar_calendario_ine.py`, `mapear_calendario_ine.py` y sus `.bat`) —
+  ya cumplieron su función y su lógica quedó incorporada de forma permanente
+  en `calendario.py`.
+
 ## 2026-08-28 (7)
 
 - **Ampliación del modelo de datos: todas las CCAA + total nacional, para

@@ -103,3 +103,23 @@ class IneClient:
 
         time.sleep(self.delay_seconds)
         return data
+
+    def fetch_json(self, path: str) -> Any:
+        """GET genérico a cualquier endpoint de Tempus3 (p.ej.
+        'PUBLICACIONES_OPERACION/25' o 'PUBLICACIONFECHA_PUBLICACION/8').
+
+        Usado por calendario.py para consultar el calendario oficial de
+        publicaciones del INE -- fetch_tabla() se queda específico de
+        DATOS_TABLA porque tiene su propia validación de forma de respuesta.
+        """
+        url = f"{self.base_url}/{path}"
+        logger.debug("GET %s", url)
+        resp = self._session.get(url, timeout=self.timeout)
+        if resp.status_code != 200:
+            raise IneApiError(f"HTTP {resp.status_code} al pedir {path}: {resp.text[:500]}")
+        try:
+            data = resp.json()
+        except ValueError as exc:
+            raise IneApiError(f"Respuesta no-JSON para {path}: {resp.text[:500]}") from exc
+        time.sleep(self.delay_seconds)
+        return data

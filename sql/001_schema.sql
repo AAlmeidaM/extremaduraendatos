@@ -165,6 +165,33 @@ CREATE TABLE IF NOT EXISTS carga_log (
     mensaje TEXT
 );
 
+-- Calendario oficial de publicaciones del INE (2026-08-28): gobierna qué
+-- indicadores necesitan de verdad una llamada a la API cada día en modo
+-- incremental. Sustituye a la decisión anterior ("llamar siempre, el upsert
+-- es idempotente" -- ver PROJECT.md §17, ahora superada por esta). Cada
+-- indicador conoce su "operación" y "publicación" del INE
+-- (ine_operacion_id / ine_publicacion_id, ver indicadores.py);
+-- calendario_publicacion guarda las fechas de publicación conocidas o
+-- previstas por indicador, refrescadas periódicamente desde
+-- PUBLICACIONES_OPERACION / PUBLICACIONFECHA_PUBLICACION — ver
+-- src/extremadura_datos/calendario.py.
+ALTER TABLE indicador ADD COLUMN IF NOT EXISTS ine_operacion_id INTEGER;
+ALTER TABLE indicador ADD COLUMN IF NOT EXISTS ine_publicacion_id INTEGER;
+ALTER TABLE indicador ADD COLUMN IF NOT EXISTS calendario_actualizado_en TIMESTAMPTZ;
+
+CREATE TABLE IF NOT EXISTS calendario_publicacion (
+    id BIGSERIAL PRIMARY KEY,
+    indicador_id INTEGER NOT NULL REFERENCES indicador(id),
+    fecha_publicacion DATE NOT NULL,
+    periodo_referencia TEXT,
+    procesada BOOLEAN NOT NULL DEFAULT FALSE,
+    creado_en TIMESTAMPTZ NOT NULL DEFAULT now(),
+    UNIQUE (indicador_id, fecha_publicacion)
+);
+
+CREATE INDEX IF NOT EXISTS idx_calendario_pendientes
+    ON calendario_publicacion (indicador_id, procesada);
+
 -- --- Datos semilla -----------------------------------------------------------
 
 INSERT INTO fuente (codigo, nombre, url_base) VALUES

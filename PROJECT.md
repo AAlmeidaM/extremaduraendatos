@@ -291,13 +291,14 @@ Destino: `F:\Archive\Backups\extremadura-en-datos\`
 - **Sin API todavía, a propósito.** Fase 1 es solo ingesta + base de datos
   (decisión del 2026-08-26). Una API de consulta (FastAPI) sería un paso
   natural posterior, cuando haga falta consumir estos datos desde otro sitio.
-- **Actualización diaria simplificada.** En vez de intentar seguir el
-  calendario real de publicaciones del INE (distinto por tabla y a veces
-  cambiante), la tarea corre todos los días y pide siempre los últimos
-  periodos (`NULT_POR_DEFECTO` en `ingest.py`); como el upsert es idempotente,
-  repetir no hace daño y no hace falta mantener lógica de calendario. Si en
-  el futuro se prefiere minimizar peticiones al INE, se puede afinar por
-  tabla usando el calendario de publicaciones real.
+- **~~Actualización diaria simplificada~~ — SUSTITUIDA el 2026-08-28 (ver
+  más abajo, "Calendario oficial del INE gobierna la ingesta").** Decisión
+  original: en vez de seguir el calendario real de publicaciones del INE, la
+  tarea corría todos los días y pedía siempre los últimos periodos
+  (`NULT_POR_DEFECTO`); como el upsert es idempotente, repetir no hacía daño.
+  El usuario pidió conectar el calendario real para que sea él quien decida
+  qué tabla toca cada día — se mantiene la nota aquí por historial, pero ya
+  no describe el comportamiento actual.
 - **✅ Catálogo completo (24/24) verificado contra la API real y
   PostgreSQL real (2026-08-28).** `parsear_tabla()` se ha ejecutado contra
   JSON real de las 24 tablas del catálogo (no una muestra). Las 23 activas
@@ -380,6 +381,56 @@ Destino: `F:\Archive\Backups\extremadura-en-datos\`
   CCAA/ciudades autónomas + España + Badajoz + Cáceres), ningún indicador
   activo a 0 filas. España (fila nacional) sola aporta 71.332 observaciones,
   ya lista para comparar sin volver a pedirle nada a la API del INE.
+- **✅ Calendario oficial del INE gobierna la ingesta (2026-08-28) — sustituye
+  a "Actualización diaria simplificada" (arriba).** El usuario pidió conectar
+  el calendario real de publicaciones del INE para que sea él quien decida,
+  tabla por tabla, si toca llamar a la API cada día (antes: se llamaba
+  siempre a las 23 tablas activas y se confiaba en el upsert idempotente).
+  Se descubrió que `SERIES_TABLA/{tabla_id_externo}` ya trae directamente
+  `FK_Operacion` y `FK_Publicacion` en cada serie — no hizo falta ningún
+  rodeo por `SERIE/{id}?det=2` (probado contra la API real, no devuelve esos
+  campos). Con esos dos ids se puede pedir `PUBLICACIONFECHA_PUBLICACION` (a
+  través de `PUBLICACIONES_OPERACION`) y saber las fechas de publicación
+  pasadas y previstas de cada tabla. Cambios:
+  - `indicadores.py`: cada `Indicador` añade `ine_operacion_id` /
+    `ine_publicacion_id` (mapeados a mano para las 24 tablas, verificado
+    2026-08-28 contra la API real). Las dos tablas CRE
+    (`ine_cre_provincia`/`ine_cre_ccaa`) se quedan sin `ine_publicacion_id`
+    en el catálogo a propósito — su formato de `SERIES_TABLA` (el mismo
+    "formato CRE" ya documentado en `parse.py`) no trae `FK_Publicacion` por
+    serie; `calendario.py` lo autodescubre en tiempo de ejecución vía
+    `PUBLICACIONES_OPERACION` y lo guarda en la base la primera vez.
+  - `sql/001_schema.sql`: columnas nuevas en `indicador`
+    (`ine_operacion_id`, `ine_publicacion_id`, `calendario_actualizado_en`) y
+    tabla nueva `calendario_publicacion` (una fila por fecha de publicación
+    conocida/prevista de cada indicador, con `procesada` para saber si ya se
+    ingirió esa publicación).
+  - `src/extremadura_datos/calendario.py` (módulo nuevo, permanente —no un
+    script suelto): `debe_ingerir_hoy()` refresca el calendario si hace más
+    de 3 días que no se consulta (`DIAS_ENTRE_REFRESCOS`) y decide si hay
+    alguna publicación pendiente; `marcar_procesado()` la marca tras una
+    ingesta con éxito. **Red de seguridad, siempre**: si un indicador no
+    tiene `ine_operacion_id`, o el calendario nunca se ha podido leer (fallo
+    de red, API caída…), se ingiere igual — este módulo solo puede añadir
+    criterio, nunca puede hacer que se deje de ingerir por falta de datos de
+    calendario.
+  - `ingest.py`: en `--modo incremental` (el que usa la tarea diaria) se
+    consulta `calendario.debe_ingerir_hoy()` antes de llamar de verdad a la
+    API; si no toca, se registra el motivo en el log y se pasa al siguiente
+    indicador sin gastar una petición real. `--modo historico` no cambia:
+    siempre trae todo el histórico, calendario aparte.
+  Validado en el PostgreSQL de prueba del entorno cloud (esquema aplicado dos
+  veces sin cambios — idempotente; y simulando el cliente HTTP: red caída →
+  se ingiere igual, calendario con una fecha vencida → se ingiere y se marca
+  procesada, sin fecha vencida → se salta, autodescubrimiento del
+  `ine_publicacion_id` de las tablas CRE → funciona y persiste). No hizo
+  falta ningún script manual ni Computer Use para desplegarlo: como
+  `ensure_schema()` reaplica `sql/001_schema.sql` en cada arranque de
+  `ingest.py`, el cambio se activa solo en la próxima ejecución de la tarea
+  programada diaria (`scripts\run_ingesta.ps1`) — la primera vez que corra
+  cada indicador consultará su calendario por primera vez (autodescubriendo
+  `ine_publicacion_id` en las CRE) y a partir de ahí decidirá cada día si
+  toca o no.
 - **Filtrado por nombre, no por código interno.** Se filtra Extremadura /
   Badajoz / Cáceres buscando esas palabras (sin acentos) en el nombre de
   serie que devuelve el INE, no por los códigos numéricos internos de

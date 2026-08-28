@@ -4,10 +4,15 @@ Recorre INDICADORES (indicadores.py), descarga cada tabla del INE, la filtra
 a Extremadura/Badajoz/Cáceres, y hace upsert en PostgreSQL. Tiene dos modos:
 
 - `--modo incremental` (por defecto): pide solo los últimos NULT_POR_DEFECTO
-  periodos. Es el que usa la tarea programada diaria (scripts\\run_ingesta.ps1):
-  como el upsert es idempotente, da igual si algún día no llega a ejecutarse
-  — el día siguiente se pone al día solo, sin lógica de calendario que
-  mantener.
+  periodos, y solo de verdad -- desde 2026-08-28 este modo consulta primero
+  el calendario oficial de publicaciones del INE (ver calendario.py) y salta
+  la llamada real a la API para las tablas que ese calendario dice que no
+  tienen publicación pendiente hoy. (Decisión anterior, ahora sustituida:
+  llamar siempre a las 23 tablas activas y confiar en que el upsert es
+  idempotente -- ver PROJECT.md §17 para el porqué del cambio.) Es el modo
+  que usa la tarea programada diaria (scripts\\run_ingesta.ps1); el upsert
+  sigue siendo idempotente, así que da igual si algún día no llega a
+  ejecutarse -- se pone al día en cuanto vuelva a correr.
 - `--modo historico`: pide TODO el histórico disponible de la tabla (sin
   límite `nult`). Se usa para la carga inicial de cada fuente (una vez), para
   poder agregar y comparar series completas a nivel CCAA/provincia desde el
@@ -28,7 +33,7 @@ import logging
 import sys
 from datetime import datetime, timezone
 
-from . import db
+from . import calendario, db
 from .config import Config
 from .indicadores import INDICADORES
 from .ine_client import IneApiError, IneClient
@@ -125,7 +130,18 @@ def main() -> int:
             if not indicador.activo:
                 continue
             try:
+                indicador_id = db.get_or_create_indicador(conn, indicador)
+                if args.modo == "incremental" and not calendario.debe_ingerir_hoy(
+                    conn, cliente, indicador_id, indicador
+                ):
+                    logger.info(
+                        "%s: el calendario del INE no marca publicación pendiente hoy -- se omite.",
+                        indicador.codigo,
+                    )
+                    continue
                 ingerir_indicador(conn, cfg, cliente, indicador, nult=nult)
+                if args.modo == "incremental":
+                    calendario.marcar_procesado(conn, indicador_id)
             except Exception:  # noqa: BLE001 - se registra y se sigue con el resto
                 logger.exception("Error inesperado ingiriendo %s", indicador.codigo)
                 hubo_error = True
