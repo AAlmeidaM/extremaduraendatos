@@ -143,6 +143,35 @@ exportar_web.py → web/data/*.json  ──────────────�
 
 ## 8. Registro de avances
 
+- 2026-09-16 — Paso 3 (revisión) — Petición del usuario: mapa más legible y
+  con dato por región, contraste de cifras, textos para público general y autoría.
+  - **Mapa**: se sustituye el 3D (echarts-gl, retirado) por un mapa 2D de
+    ECharts con zoom y arrastre. Colores por tramos: para indicadores con media
+    UE, 4 cuartiles a cada lado de la media (azul por encima, rojo por debajo;
+    en paro, al revés), pálidos junto a la media e intensos lejos de ella; sin
+    media UE, 6 sextiles en azul. Al pasar el cursor: aviso con el dato y ficha
+    (valor, puesto, media UE, Extremadura); al hacer clic o tocar, la región
+    queda seleccionada con borde cian. Extremadura con borde blanco.
+  - **Contraste de datos**: `scripts/contrastar_web.py` (+ `contrastar_web.bat`)
+    vuelve a pedir cada cifra no analítica a la fuente original y la compara con
+    `panel.json`: INE serie a serie por código (paro EPA Extremadura y España,
+    las 20 comunidades del ranking, población ECP, pernoctaciones, compraventa,
+    sociedades, hipotecas Badajoz+Cáceres), Eurostat con filtros escritos a mano
+    (PIB pc frente al índice oficial PPS_HAB_EU27_2020, paro, empleo, I+D, renta,
+    empleo agrario, y dos regiones de control del mapa), Agri-food (cerdo España y
+    UE, cordero, aceite) y CSV de la FAO. Resultado 2026-09-16: **49 de 49
+    coinciden**. Paro de España 9,87 % confirmado además con la nota de prensa
+    del INE (EPA 2T 2026). Observación: el PIB pc UE=100 se calcula con PPS
+    absolutos redondeados (70,4) y coincide con el índice oficial (70) al
+    mostrarse sin decimales.
+  - **Textos**: explicaciones reescritas en lenguaje sencillo; bajo cada
+    análisis, línea "Técnica:" con el nombre del método (modelo estacional
+    ingenuo con tendencia y backtesting, percentiles, distancia euclídea sobre
+    puntuaciones z, convergencia beta, correlación cruzada, MCO). Textos de
+    alertas del exportador simplificados ("Cae un 13,4 % respecto al año
+    anterior, un cambio normal…").
+  - **Autoría**: pie con "Autor: Alejandro Almeida · alejandroalmeida.es" y
+    meta `author`.
 - 2026-09-16 — Paso 3 — **Panel con datos reales publicado** en la raíz del
   proyecto de Vercel (`web/index.html`, aún `noindex` hasta poner el dominio).
   - `scripts/exportar_web.py` (solo lectura, sin dependencias nuevas) genera

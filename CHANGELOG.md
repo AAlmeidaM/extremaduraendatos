@@ -1,5 +1,11 @@
 # CHANGELOG — Extremadura en Datos
 
+## 2026-09-16 — Web: mapa 2D interactivo, contraste de cifras y textos sencillos
+
+- Mapa de regiones en 2D con colores por tramos respecto a la media UE, dato al pasar el cursor y al hacer clic.
+- `scripts/contrastar_web.py` + `contrastar_web.bat`: 49/49 cifras coinciden con INE, Eurostat, Agri-food y FAO.
+- Textos para público general con la técnica indicada aparte; autor en el pie (alejandroalmeida.es).
+
 ## 2026-09-16 — Web: panel con datos reales (paso 3)
 
 - `scripts/exportar_web.py` + `exportar_web.bat`: exporta `web/datos/panel.json` y `nuts2.geojson`.

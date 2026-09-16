@@ -577,8 +577,8 @@ function bloqueEuropa(E,hayGeo){
     id:"Lo que se invierte en investigación y desarrollo, en porcentaje de la riqueza producida (PIB)."};
   // en qué sentido pintar: 1 = más alto en azul; -1 = más alto en rojo (paro)
   const SENTIDO={pib:1,renta:1,empleo:1,paro:-1};
-  const AZUL=["#27435e","#2f6aa0","#4b93d6","#8cc3f2"],ROJO=["#5e2b2b","#9e3b36","#d2604f","#f29a86"];
-  const SEQ=["#1e3350","#24507d","#2f6aa0","#4b93d6","#7fb6e8","#b9dbf7"];
+  const AZUL=["#c9ddf2","#8dbbe8","#4f93d6","#2166b0"],ROJO=["#f5cdc4","#ec9888","#d9604f","#b02f2a"];
+  const SEQ=["#e3eef9","#bcd6f0","#8dbbe8","#5d9fdc","#337fc6","#1c5e9f"];
   const sel=document.getElementById("selMapa");
   const orden=["pib","renta","paro","empleo","agro","id"].filter(k=>E.capas[k]);
   sel.innerHTML=orden.map((k,i)=>`<button type="button" data-k="${k}" aria-pressed="${i===0}">${esc(E.capas[k].titulo)}</button>`).join("");
@@ -596,11 +596,11 @@ function bloqueEuropa(E,hayGeo){
       for(let i=0;i<4;i++)pieces.push({min:cb[i],max:cb[i+1],color:colBajo[3-i],label:rango(cb[i],cb[i+1])});
       const ca=[ref,q(alto,.25),q(alto,.5),q(alto,.75),Math.max(...alto)];
       for(let i=0;i<4;i++)pieces.push({min:ca[i],max:ca[i+1]+(i===3?1e-9:0),color:colAlto[i],label:rango(ca[i],ca[i+1])});
-      return {pieces,leyenda:SENTIDO[k]>0?`<span style="color:#8cc3f2">■</span> por encima de la media de la UE (${nf(ref,d)}) · <span style="color:#f29a86">■</span> por debajo`:`<span style="color:#f29a86">■</span> más paro que la media de la UE (${nf(ref,d)}) · <span style="color:#8cc3f2">■</span> menos paro`};
+      return {pieces,leyenda:SENTIDO[k]>0?`<span style="color:#4f93d6">■</span> azul: por encima de la media de la UE (${nf(ref,d)}) · <span style="color:#d9604f">■</span> rojo: por debajo. Cuanto más intenso, más lejos de la media.`:`<span style="color:#d9604f">■</span> rojo: más paro que la media de la UE (${nf(ref,d)}) · <span style="color:#4f93d6">■</span> azul: menos paro. Cuanto más intenso, más lejos de la media.`};
     }
     const cs=[0,1/6,2/6,3/6,4/6,5/6,1].map(p=>q(vals,p));
     for(let i=0;i<6;i++)pieces.push({min:cs[i],max:cs[i+1]+(i===5?1e-9:0),color:SEQ[i],label:rango(cs[i],cs[i+1])});
-    return {pieces,leyenda:`Color más claro = valor más alto. Cada tono agrupa una sexta parte de las regiones.`};
+    return {pieces,leyenda:`Azul más intenso = valor más alto. Cada tono agrupa una sexta parte de las regiones.`};
   }
   function ficha(id){
     const L=E.capas[capa],v=L.valores[id],d=L.decimales;
@@ -614,6 +614,9 @@ function bloqueEuropa(E,hayGeo){
       ?`<span><b>${esc(nombre)}</b>: sin dato para ${L.anyo}</span>`
       :`<span style="color:var(--ink)"><b>${esc(nombre)}</b></span><span>${esc(L.titulo)}: <b>${nf(v,d)}${esc(unidadTxt(L))}</b></span><span>Puesto <b>${puesto}</b> de ${L.n}, de mayor a menor</span>${comp.map(c=>`<span>${c}</span>`).join("")}`;
   }
+  function datosMapa(vals){
+    return vals.map(([id,v])=>({name:id,value:v,...(id===seleccion&&id!=="ES43"?{itemStyle:{borderColor:C.pulso,borderWidth:2.5},z:3}:id==="ES43"?{itemStyle:{borderColor:"#ffffff",borderWidth:2.5},z:4}:{})}));
+  }
   function pintarCapa(k){
     capa=k;const L=E.capas[k];const vals=Object.entries(L.valores);
     const T=tramos(L,k);
@@ -624,20 +627,19 @@ function bloqueEuropa(E,hayGeo){
     if(!hayGeo)return;
     if(!cm){
       cm=chart("mapa3d");
-      cm.on("click",p=>{if(p.name){seleccion=p.name;ficha(p.name)}});
+      cm.on("click",p=>{if(p.name){seleccion=p.name;ficha(p.name);cm.setOption({series:[{data:datosMapa(Object.entries(E.capas[capa].valores))}]})}});
       cm.on("mouseover",p=>{if(p.name&&!movil)ficha(p.name)});
       cm.on("globalout",()=>{if(!movil)ficha(seleccion)});
     }
     cm.setOption({...base,animationDurationUpdate:reduce?0:500,
       tooltip:{...base.tooltip,trigger:"item",formatter:p=>{const v=L.valores[p.name];return `<b>${esc(nombres[p.name]||p.name)}</b><br>${esc(L.titulo)}: <b>${v==null?"sin dato":nf(v,L.decimales)+esc(unidadTxt(L))}</b>`}},
-      visualMap:{type:"piecewise",pieces:T.pieces,show:!movil,orient:"vertical",left:4,bottom:6,itemWidth:12,itemHeight:10,itemGap:3,textStyle:{color:C.ink2,fontSize:10},outOfRange:{color:"#1a2432"}},
-      series:[{type:"map",map:"nuts2",roam:true,scaleLimit:{min:1,max:12},zoom:1.15,center:[12,51],
-        aspectScale:0.72,selectedMode:"single",
-        itemStyle:{areaColor:"#1a2432",borderColor:"#0b1016",borderWidth:.5},
+      visualMap:{type:"piecewise",pieces:T.pieces,show:!movil,orient:"vertical",left:4,bottom:6,itemWidth:12,itemHeight:10,itemGap:3,textStyle:{color:C.ink2,fontSize:10},outOfRange:{color:"#2a3441"}},
+      series:[{type:"map",map:"nuts2",roam:true,scaleLimit:{min:1,max:12},zoom:movil?1.2:1.35,center:[13,52],
+        aspectScale:0.72,selectedMode:false,
+        itemStyle:{areaColor:"#2a3441",borderColor:"#0b1016",borderWidth:.5},
         emphasis:{label:{show:false},itemStyle:{borderColor:C.pulso,borderWidth:1.5}},
-        select:{label:{show:false},itemStyle:{borderColor:C.pulso,borderWidth:2.5}},
-        label:{show:false},
-        data:vals.map(([id,v])=>({name:id,value:v,...(id==="ES43"?{itemStyle:{borderColor:"#ffffff",borderWidth:2}}:{})}))}]
+                label:{show:false},
+        data:datosMapa(vals)}]
     },true);
   }
   sel.addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;sel.querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x===b));pintarCapa(b.dataset.k)});
