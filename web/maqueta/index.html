@@ -35,7 +35,7 @@ a{color:inherit}
 
 /* cinta */
 .cinta{position:sticky;top:0;z-index:50;background:rgba(11,16,22,.88);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);display:flex;align-items:center;height:40px;overflow:hidden}
-.cinta .etq{flex:none;height:100%;display:flex;align-items:center;gap:8px;padding:0 14px;font:600 11px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--pulso);border-right:1px solid var(--line);background:var(--bg)}
+.cinta .etq{position:relative;z-index:2;flex:none;height:100%;display:flex;align-items:center;gap:8px;padding:0 14px;font:600 11px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--pulso);border-right:1px solid var(--line);background:var(--bg)}
 .cinta .etq i{width:8px;height:8px;border-radius:50%;background:var(--pulso);box-shadow:0 0 0 0 rgba(34,211,238,.6);animation:latido 2s infinite}
 @keyframes latido{70%{box-shadow:0 0 0 8px rgba(34,211,238,0)}100%{box-shadow:0 0 0 0 rgba(34,211,238,0)}}
 .cinta .pista{display:flex;width:max-content;animation:desliza 70s linear infinite}
@@ -435,9 +435,11 @@ document.querySelectorAll("canvas[data-spark]").forEach(cv=>{
 /* ---------- NOWCAST ---------- */
 (function(){
   const c=chart("gNowcast");if(!c)return;
-  const per=[],real=[],r=rng("paro");let v=29;
-  for(let a=2016;a<=2026;a++)for(let t=1;t<=4;t++){if(a===2026&&t>2)break;per.push(`${a}T${t}`);v+= (r()-.62)*1.3 + (t===3?-.8:t===1?.9:0);real.push(+Math.max(v,14).toFixed(1))}
-  const last=real.at(-1);const fut=["2026T3","2026T4","2027T1","2027T2"];const est=[14.4,14.9,15.6,14.8];
+  const per=[],real=[],r=rng("paro");const N=42;let i=0;
+  for(let a=2016;a<=2026;a++)for(let t=1;t<=4;t++){if(a===2026&&t>2)break;per.push(`${a}T${t}`);
+    const tend=29-14*(i/(N-1))+(a===2020&&t>=2?3:0)+(a===2021&&t<=2?1.5:0);const est=(t===1?.9:t===3?-.9:0);
+    real.push(+(i===N-1?15.2:tend+est+(r()-.5)*.8).toFixed(1));i++}
+  const last=real.at(-1);const fut=["2026T3","2026T4","2027T1","2027T2"];const est=[14.1,14.8,15.5,14.4];
   const lo=est.map((e,i)=>+(e-0.9*(1+i*.35)).toFixed(1)),hi=est.map((e,i)=>+(e+0.9*(1+i*.35)).toFixed(1));
   const all=per.concat(fut);const pad=a=>Array(per.length-1).fill(null).concat(a);
   const estS=pad([last,...est]),loS=pad([last,...lo]),bandS=pad([0,...hi.map((h,i)=>+(h-lo[i]).toFixed(1))]);
@@ -499,7 +501,7 @@ function mapaHero(){
   const c=chart("mapaHero");if(!c)return;
   const o=CENTROS.ES43;
   c.setOption({...base,
-    geo:{map:"nuts2",roam:false,center:[8,48],zoom:1.25,silent:true,itemStyle:{areaColor:"#15202d",borderColor:"#26364a",borderWidth:.6},
+    geo:{map:"nuts2",roam:false,center:[12,50],zoom:1.75,silent:true,itemStyle:{areaColor:"#15202d",borderColor:"#26364a",borderWidth:.6},
       regions:[{name:"ES43",itemStyle:{areaColor:C.ext,borderColor:"#ffb27a"}},...GEMELAS.map(g=>({name:g[0],itemStyle:{areaColor:"#3b2f63",borderColor:C.europa}}))]},
     series:[
       {type:"lines",coordinateSystem:"geo",zlevel:2,effect:{show:!reduce,period:4,trailLength:.25,symbol:"circle",symbolSize:4,color:"#fff"},
@@ -525,19 +527,19 @@ function mapa3d(k){
   document.getElementById("subMapa").textContent=`${ind.t} (${ind.u}). Extremadura ocupa el puesto ${pos} de ${vals.length} regiones. La altura y la intensidad del color representan el valor.`;
   tablas.mapa3d={cab:["Región","Código",`${ind.t} (${ind.u})`],filas:orden.map(([id,v])=>[nombres[id],id,fmt(v,ind.d)])};
   // rampa secuencial de un solo tono (violeta), más valor = más claro sobre fondo oscuro
-  const ramp=["#241b40","#3b2d6b","#5a44a0","#8069d0","#a996ec","#d8ccff"];
+  const ramp=["#2a2150","#3b2d6b","#523f94","#6b56b8","#8a74d6","#a996ec"];
   const col=v=>{const t=(v-mn)/(mx-mn||1);return ramp[Math.min(ramp.length-1,Math.floor(t*ramp.length))]};
   if(!c3d)c3d=chart("mapa3d");
-  const regiones=vals.map(([id,v])=>({name:id,height:0.4+(v-mn)/(mx-mn||1)*6,
+  const regiones=vals.map(([id,v])=>({name:id,height:0.3+(v-mn)/(mx-mn||1)*3,
     itemStyle:{color:id==="ES43"?C.ext:col(v),borderColor:"#0b1016",borderWidth:.6}}));
-  c3d.setOption({...base,
+  c3d.setOption({...base,backgroundColor:"transparent",
     tooltip:{...base.tooltip,formatter:p=>{const v=vals.find(x=>x[0]===p.name);return v?`<b>${nombres[p.name]}</b> <span style="color:${C.muted}">${p.name}</span><br>${ind.t}: <b>${fmt(v[1],ind.d)}</b> ${ind.u}`:""}},
     visualMap:{show:true,min:mn,max:mx,left:8,bottom:8,orient:"horizontal",itemWidth:10,itemHeight:140,text:[fmt(mx,ind.d),fmt(mn,ind.d)],textStyle:{color:C.ink2,fontSize:11},
       inRange:{color:ramp},calculable:false,seriesIndex:[]},
-    geo3D:{map:"nuts2",boxHeight:6,regionHeight:0.4,shading:"lambert",
+    geo3D:{map:"nuts2",boxHeight:3,top:-30,regionHeight:0.4,shading:"lambert",
       light:{main:{intensity:1.2,shadow:true,alpha:40,beta:30},ambient:{intensity:.35}},
-      viewControl:{distance:118,alpha:48,beta:-8,center:[4,-10,0],autoRotate:false,minDistance:60,maxDistance:200,animationDurationUpdate:reduce?0:800},
-      groundPlane:{show:false},environment:"transparent",
+      viewControl:{distance:150,alpha:50,beta:0,center:[0,-8,0],autoRotate:false,minDistance:60,maxDistance:200,animationDurationUpdate:reduce?0:800},
+      groundPlane:{show:false},environment:"none",postEffect:{enable:false},
       itemStyle:{color:"#1a2432",borderColor:"#0b1016",borderWidth:.6},
       emphasis:{itemStyle:{color:C.pulso},label:{show:true,textStyle:{color:C.ink,backgroundColor:"#0f1620",padding:4,fontSize:12},formatter:p=>nombres[p.name]}},
       label:{show:false},
@@ -559,11 +561,11 @@ function mapa3d(k){
     legend:{top:0,right:0,textStyle:{color:C.ink2,fontSize:12},itemWidth:10,itemHeight:10,data:["Extremadura","Otras regiones de España","Resto de la UE"]},
     tooltip:{...base.tooltip,trigger:"item",formatter:tip},
     xAxis:eje({type:"value",name:"PIB por habitante 2012 (UE = 100)",nameLocation:"middle",nameGap:28,nameTextStyle:{color:C.muted,fontSize:11},min:20,max:180}),
-    yAxis:eje({type:"value",name:"Crecimiento anual (%)",nameTextStyle:{color:C.muted,fontSize:11,align:"left"},axisLabel:{color:C.muted,formatter:"{value} %"}}),
+    yAxis:eje({type:"value",name:"Crecimiento anual (%)",scale:true,nameTextStyle:{color:C.muted,fontSize:11,align:"left"},axisLabel:{color:C.muted,formatter:"{value} %"}}),
     series:[
-      {name:"Resto de la UE",type:"scatter",data:pts,symbolSize:8,itemStyle:{color:C.otros,opacity:.75}},
-      {name:"Otras regiones de España",type:"scatter",data:esp,symbolSize:9,itemStyle:{color:C.esp,borderColor:C.bg,borderWidth:2}},
-      {name:"Extremadura",type:"scatter",data:[ext],symbolSize:16,itemStyle:{color:C.ext,borderColor:C.bg,borderWidth:2},z:5,
+      {name:"Resto de la UE",type:"scatter",encode:{x:1,y:2},data:pts,symbolSize:8,itemStyle:{color:C.otros,opacity:.75}},
+      {name:"Otras regiones de España",type:"scatter",encode:{x:1,y:2},data:esp,symbolSize:9,itemStyle:{color:C.esp,borderColor:C.bg,borderWidth:2}},
+      {name:"Extremadura",type:"scatter",encode:{x:1,y:2},data:[ext],symbolSize:16,itemStyle:{color:C.ext,borderColor:C.bg,borderWidth:2},z:5,
         label:{show:true,position:"right",color:C.ink,fontWeight:600,fontSize:12,formatter:"Extremadura"},
         markLine:{silent:true,symbol:"none",lineStyle:{color:C.line,type:"dashed"},label:{color:C.muted,fontSize:11,formatter:"media UE"},data:[{xAxis:100}]}}
     ]});
