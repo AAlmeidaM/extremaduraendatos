@@ -1,52 +1,703 @@
 <!doctype html>
 <html lang="es">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Extremadura en Datos</title>
-  <meta name="description" content="Panel público de datos sobre la economía de Extremadura: coyuntura, comparación con las regiones europeas y precios agrarios. Próximamente.">
-  <meta name="theme-color" content="#0b1016">
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230b1016'/%3E%3Cpath d='M7 22l6-6 4 4 8-9' fill='none' stroke='%2322d3ee' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
-  <style>
-    :root {
-      --bg: #0b1016; --bg-2: #111923; --text: #e6edf3; --muted: #8b98a5; --line: #1f2a36;
-      --pulso: #22d3ee; --europa: #a78bfa; --campo: #84cc16;
-    }
-    * { box-sizing: border-box; }
-    html, body { margin: 0; background: var(--bg); color: var(--text); }
-    body {
-      min-height: 100vh; display: grid; place-items: center; padding: 32px 16px;
-      font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-      background:
-        radial-gradient(900px 500px at 15% -10%, rgba(34,211,238,.10), transparent 60%),
-        radial-gradient(800px 500px at 110% 110%, rgba(167,139,250,.10), transparent 60%),
-        var(--bg);
-    }
-    main { width: 100%; max-width: 760px; }
-    .marca { display: flex; align-items: center; gap: 12px; color: var(--muted); font-size: 14px; letter-spacing: .08em; text-transform: uppercase; }
-    .punto { width: 8px; height: 8px; border-radius: 50%; background: var(--pulso); box-shadow: 0 0 12px var(--pulso); animation: latido 2s ease-in-out infinite; }
-    @keyframes latido { 50% { opacity: .35; } }
-    h1 { font-size: clamp(36px, 7vw, 64px); line-height: 1.05; margin: 18px 0 16px; letter-spacing: -.02em; }
-    p { color: var(--muted); font-size: 18px; line-height: 1.6; margin: 0 0 28px; }
-    .bloques { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 32px; }
-    .bloque { background: var(--bg-2); border: 1px solid var(--line); border-radius: 12px; padding: 16px; border-top: 3px solid var(--c); }
-    .bloque b { display: block; margin-bottom: 6px; font-size: 16px; }
-    .bloque span { color: var(--muted); font-size: 14px; line-height: 1.5; }
-    footer { color: var(--muted); font-size: 13px; line-height: 1.6; border-top: 1px solid var(--line); padding-top: 16px; }
-    @media (prefers-reduced-motion: reduce) { .punto { animation: none; } }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Extremadura en Datos</title>
+<meta name="description" content="Panel de datos abiertos sobre Extremadura: economía, comparación con las regiones de la UE y precios agrarios, actualizado cada día.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230b1016'/%3E%3Cpath d='M14 44 L26 30 L36 38 L50 20' stroke='%2322d3ee' stroke-width='6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0b1016; --bg2:#0f1620; --panel:#121b26; --panel2:#172231; --line:#223044; --grid:#1b2736;
+  --ink:#e6edf5; --ink2:#a9b6c6; --muted:#8190a3;
+  /* acentos de bloque (identidad de sección, no de series) */
+  --pulso:#22d3ee; --europa:#a78bfa; --campo:#a3e635;
+  /* series validadas (validate_palette.js, modo oscuro, superficie #0b1016) */
+  --s-ext:#dd6b20; --s-esp:#1c9fbf; --s-ue:#9b72f0; --s-otros:#4a5a6e;
+  /* estados reservados */
+  --ok:#3fb950; --warn:#d29922; --crit:#f85149;
+  --mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+a{color:inherit}
+.wrap{max-width:1240px;margin:0 auto;padding:0 16px}
+.mono{font-family:var(--mono)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+
+/* aviso de maqueta */
+.aviso-maqueta{background:repeating-linear-gradient(45deg,#3a2a05 0 12px,#2e2204 12px 24px);color:#ffd98a;text-align:center;font-size:13px;padding:6px 16px;font-weight:600}
+
+/* cinta */
+.cinta{position:sticky;top:0;z-index:50;background:rgba(11,16,22,.88);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);display:flex;align-items:center;height:40px;overflow:hidden}
+.cinta .etq{position:relative;z-index:2;flex:none;height:100%;display:flex;align-items:center;gap:8px;padding:0 14px;font:600 11px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--pulso);border-right:1px solid var(--line);background:var(--bg)}
+.cinta .etq i{width:8px;height:8px;border-radius:50%;background:var(--pulso);box-shadow:0 0 0 0 rgba(34,211,238,.6);animation:latido 2s infinite}
+@keyframes latido{70%{box-shadow:0 0 0 8px rgba(34,211,238,0)}100%{box-shadow:0 0 0 0 rgba(34,211,238,0)}}
+.cinta .pista{display:flex;width:max-content;animation:desliza 70s linear infinite}
+.cinta:hover .pista{animation-play-state:paused}
+@keyframes desliza{to{transform:translateX(-50%)}}
+.cinta .it{display:flex;align-items:center;gap:8px;padding:0 22px;font:13px var(--mono);white-space:nowrap;color:var(--ink2);border-right:1px solid var(--grid)}
+.cinta .it b{color:var(--ink);font-weight:600}
+.cinta .it .dot{width:6px;height:6px;border-radius:2px}
+.up{color:#7ee2a8}.down{color:#ff9b93}.flat{color:var(--muted)}
+
+/* cabecera */
+header.nav{display:flex;justify-content:space-between;align-items:center;padding:18px 0}
+.marca{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:-.01em;font-size:18px;text-decoration:none}
+.marca svg{width:30px;height:30px}
+.marca span{color:var(--muted);font-weight:500}
+nav.menu{display:flex;gap:6px;flex-wrap:wrap}
+nav.menu a{text-decoration:none;font-size:13px;color:var(--ink2);padding:6px 12px;border:1px solid var(--line);border-radius:999px}
+nav.menu a:hover{color:var(--ink);border-color:var(--muted)}
+nav.menu a[data-c=pulso]:hover{border-color:var(--pulso)} nav.menu a[data-c=europa]:hover{border-color:var(--europa)} nav.menu a[data-c=campo]:hover{border-color:var(--campo)}
+
+/* portada */
+.hero{position:relative;padding:26px 0 40px;overflow:hidden}
+.hero::before{content:"";position:absolute;inset:0;background:
+  radial-gradient(600px 300px at 20% 30%,rgba(34,211,238,.10),transparent 70%),
+  radial-gradient(500px 300px at 80% 60%,rgba(167,139,250,.10),transparent 70%),
+  linear-gradient(var(--grid) 1px,transparent 1px) 0 0/40px 40px,
+  linear-gradient(90deg,var(--grid) 1px,transparent 1px) 0 0/40px 40px;
+  mask-image:radial-gradient(ellipse at center,#000 30%,transparent 80%);opacity:.9;pointer-events:none}
+.hero-grid{position:relative;display:grid;grid-template-columns:1fr 1.15fr;gap:28px;align-items:center}
+.kicker{font:600 12px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.hero h1{font-size:clamp(34px,5.2vw,62px);line-height:1.02;letter-spacing:-.035em;margin:12px 0 16px;font-weight:800}
+.hero h1 em{font-style:normal;background:linear-gradient(90deg,var(--pulso),var(--europa) 55%,var(--campo));-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero p.lead{color:var(--ink2);font-size:17px;max-width:520px;margin:0 0 22px}
+.actualizado{display:inline-flex;gap:10px;align-items:center;font:12px var(--mono);color:var(--ink2);border:1px solid var(--line);border-radius:8px;padding:7px 12px;background:var(--bg2)}
+.actualizado i{width:7px;height:7px;border-radius:50%;background:var(--ok)}
+.kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:22px}
+.kpi{background:linear-gradient(180deg,var(--panel),var(--bg2));border:1px solid var(--line);border-radius:12px;padding:14px;position:relative;overflow:hidden}
+.kpi::after{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--acc,var(--pulso))}
+.kpi .l{font-size:12px;color:var(--muted)}
+.kpi .v{font:600 28px var(--mono);letter-spacing:-.02em;margin:2px 0}
+.kpi .d{font:12px var(--mono)}
+#mapaHero{height:460px;border-radius:16px;border:1px solid var(--line);background:radial-gradient(circle at 40% 60%,#101a26,#0b1016)}
+.pie-mapa{font-size:11px;color:var(--muted);margin-top:6px;text-align:right}
+
+/* bloques */
+section.bloque{padding:70px 0 40px;position:relative;border-top:1px solid var(--line)}
+section.bloque::before{content:"";position:absolute;left:0;right:0;top:-1px;height:2px;background:linear-gradient(90deg,transparent,var(--acc),transparent)}
+.b-pulso{--acc:var(--pulso)} .b-europa{--acc:var(--europa)} .b-campo{--acc:var(--campo)}
+.b-europa{background:linear-gradient(180deg,rgba(167,139,250,.04),transparent 40%)}
+.b-campo{background:linear-gradient(180deg,rgba(163,230,53,.035),transparent 40%)}
+.cab-bloque{display:grid;grid-template-columns:auto 1fr;gap:18px;align-items:start;margin-bottom:28px}
+.num{font:600 13px var(--mono);color:var(--acc);border:1px solid var(--acc);border-radius:8px;padding:6px 9px;margin-top:6px}
+.cab-bloque h2{margin:0;font-size:clamp(26px,3.4vw,40px);letter-spacing:-.03em;line-height:1.1}
+.cab-bloque p{margin:8px 0 0;color:var(--ink2);max-width:760px}
+.rejilla{display:grid;grid-template-columns:repeat(12,1fr);gap:16px}
+.tarjeta{grid-column:span 12;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px;min-width:0}
+.s4{grid-column:span 4}.s5{grid-column:span 5}.s6{grid-column:span 6}.s7{grid-column:span 7}.s8{grid-column:span 8}.s3{grid-column:span 3}
+.tarjeta h3{margin:0;font-size:15px;font-weight:600}
+.tarjeta .sub{margin:3px 0 12px;color:var(--muted);font-size:13px}
+.graf{width:100%;height:320px}
+.graf.alto{height:520px}.graf.bajo{height:240px}
+.pie-t{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:10px;font-size:11px;color:var(--muted)}
+.pie-t button{background:none;border:0;color:var(--ink2);font:inherit;text-decoration:underline;cursor:pointer;padding:0}
+.etiqueta-est{display:inline-block;font:600 10px var(--mono);letter-spacing:.08em;text-transform:uppercase;padding:2px 6px;border-radius:4px;border:1px dashed var(--ink2);color:var(--ink2);margin-left:6px;vertical-align:2px}
+
+/* tiles de dato */
+.tile .l{font-size:13px;color:var(--ink2)}
+.tile .v{font:600 34px var(--mono);letter-spacing:-.03em;margin:6px 0 2px}
+.tile .v small{font-size:15px;color:var(--muted);margin-left:4px}
+.tile .d{font:12px var(--mono)}
+.tile .f{font-size:11px;color:var(--muted);margin-top:8px}
+.tile canvas{display:block;width:100%;height:36px;margin-top:10px}
+
+/* filtros */
+.filtros{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.filtros button{font:13px Inter,sans-serif;color:var(--ink2);background:var(--bg2);border:1px solid var(--line);border-radius:8px;padding:7px 12px;cursor:pointer}
+.filtros button[aria-pressed=true]{color:var(--ink);border-color:var(--acc);box-shadow:inset 0 0 0 1px var(--acc)}
+.filtros button:focus-visible,nav.menu a:focus-visible{outline:2px solid var(--acc,var(--pulso));outline-offset:2px}
+
+/* alertas */
+.alertas{display:grid;gap:10px}
+.alerta{display:grid;grid-template-columns:28px 1fr;gap:10px;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--bg2)}
+.alerta svg{width:22px;height:22px}
+.alerta b{display:block;font-size:14px}
+.alerta span{font-size:13px;color:var(--ink2)}
+.alerta .est{font:600 10px var(--mono);letter-spacing:.08em;text-transform:uppercase}
+
+/* gemelas */
+.gemelas{display:grid;gap:8px}
+.gemela{display:grid;grid-template-columns:1fr auto;gap:4px 12px;padding:10px 12px;border-radius:10px;background:var(--bg2);border:1px solid var(--line)}
+.gemela b{font-size:14px}.gemela small{color:var(--muted);font-size:12px;grid-column:1}
+.gemela .sim{grid-row:1/3;grid-column:2;align-self:center;font:600 18px var(--mono)}
+.barra{grid-column:1/3;height:4px;background:var(--grid);border-radius:4px;overflow:hidden}
+.barra i{display:block;height:100%;background:var(--europa);border-radius:4px}
+
+/* cadena de costes */
+.cadena{display:grid;grid-template-columns:repeat(5,1fr);gap:0;align-items:stretch;margin-top:6px}
+.eslabon{position:relative;text-align:center;padding:14px 8px}
+.eslabon .c{width:64px;height:64px;margin:0 auto 10px;border-radius:50%;display:grid;place-items:center;border:1px solid var(--line);background:radial-gradient(circle,var(--panel2),var(--bg2));font:600 13px var(--mono)}
+.eslabon b{display:block;font-size:13px}
+.eslabon span{font:12px var(--mono);color:var(--ink2)}
+.eslabon:not(:last-child)::after{content:"";position:absolute;top:46px;left:calc(50% + 34px);right:calc(-50% + 34px);height:2px;background:repeating-linear-gradient(90deg,var(--campo) 0 6px,transparent 6px 12px);background-size:24px 2px;animation:flujo 1.2s linear infinite;opacity:.7}
+@keyframes flujo{to{background-position:24px 0}}
+
+/* tablas */
+dialog{background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:12px;max-width:min(680px,92vw);max-height:80vh;padding:18px}
+dialog::backdrop{background:rgba(0,0,0,.6)}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line)}
+td.n,th.n{text-align:right;font-family:var(--mono)}
+
+/* pie */
+footer{border-top:1px solid var(--line);padding:50px 0 60px;background:var(--bg2);margin-top:40px}
+.pie-grid{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:28px}
+footer h4{font:600 12px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 12px}
+footer p,footer li{font-size:13px;color:var(--ink2)}
+footer ul{list-style:none;padding:0;margin:0;display:grid;gap:8px}
+footer li b{color:var(--ink);font-weight:600}
+.descargas a{display:inline-block;margin:0 6px 6px 0;font:12px var(--mono);padding:6px 10px;border:1px solid var(--line);border-radius:8px;text-decoration:none;color:var(--ink2)}
+.legal{margin-top:30px;padding-top:18px;border-top:1px solid var(--line);font-size:12px;color:var(--muted);display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
+
+.revela{opacity:0;transform:translateY(24px)}
+.sin-js .revela{opacity:1;transform:none}
+
+@media (max-width:980px){
+  .hero-grid{grid-template-columns:1fr}
+  .s3,.s4,.s5,.s6,.s7,.s8{grid-column:span 12}
+  .pie-grid{grid-template-columns:1fr}
+  #mapaHero{height:360px}
+  .graf.alto{height:420px}
+}
+@media (max-width:620px){
+  nav.menu{display:none}
+  .cadena{grid-template-columns:1fr}
+  .eslabon:not(:last-child)::after{display:none}
+  .kpi .v{font-size:22px}
+}
+@media (prefers-reduced-motion:reduce){
+  .cinta .pista,.cinta .etq i,.eslabon::after{animation:none!important}
+  .revela{opacity:1!important;transform:none!important}
+}
+</style>
+<style>
+.cargando{color:var(--muted);font-size:13px;padding:20px}
+.perfil{display:grid;gap:6px;margin-top:12px}
+.perfil div{display:flex;justify-content:space-between;font-size:12px;color:var(--ink2);border-bottom:1px dashed var(--grid);padding-bottom:4px}
+.perfil b{font-family:var(--mono);color:var(--ink);font-weight:600}
+.nota{font-size:12px;color:var(--muted);margin:10px 0 0}
+.error-carga{background:#2a1414;border:1px solid #5a2a2a;color:#ffb4ab;padding:14px;border-radius:10px;margin:20px 16px}
+.dato-mapa{display:flex;gap:18px;flex-wrap:wrap;margin:-4px 0 10px;font-size:13px;color:var(--ink2)}
+.dato-mapa b{font-family:var(--mono);color:var(--ink)}
+</style>
 </head>
-<body>
-  <main>
-    <div class="marca"><span class="punto" aria-hidden="true"></span>extremaduraendatos.com · en construcción</div>
-    <h1>Extremadura en Datos</h1>
-    <p>Panel público de datos sobre Extremadura, actualizado automáticamente con estadísticas oficiales.</p>
-    <div class="bloques">
-      <div class="bloque" style="--c: var(--pulso)"><b>El pulso</b><span>Coyuntura económica de Extremadura y comparación con el resto de comunidades.</span></div>
-      <div class="bloque" style="--c: var(--europa)"><b>Extremadura en Europa</b><span>Posición entre las regiones de la Unión Europea.</span></div>
-      <div class="bloque" style="--c: var(--campo)"><b>Del mercado al campo</b><span>Precios agrarios en Extremadura, España, la UE y el mundo.</span></div>
+<body class="sin-js">
+
+<div class="cinta" aria-label="Últimos datos publicados">
+  <div class="etq"><i></i>Últimos datos</div>
+  <div class="pista" id="pista"></div>
+</div>
+
+<div class="wrap">
+  <header class="nav">
+    <a class="marca" href="#">
+      <svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="14" fill="#121b26"/><path d="M14 44 L26 30 L36 38 L50 20" stroke="#22d3ee" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/><circle cx="50" cy="20" r="4" fill="#a3e635"/></svg>
+      extremaduraendatos<span>.com</span>
+    </a>
+    <nav class="menu" aria-label="Secciones">
+      <a href="#pulso" data-c="pulso">El pulso</a>
+      <a href="#europa" data-c="europa">En Europa</a>
+      <a href="#campo" data-c="campo">Del mercado al campo</a>
+      <a href="#fuentes">Fuentes</a>
+    </nav>
+  </header>
+</div>
+
+<section class="hero">
+  <div class="wrap hero-grid">
+    <div class="revela">
+      <div class="kicker">Panel de datos abiertos · Extremadura</div>
+      <h1>La región,<br><em>en cifras que se mueven.</em></h1>
+      <p class="lead">Indicadores oficiales de Extremadura actualizados cada día, comparados con España y con las regiones de la Unión Europea, junto a cálculos estadísticos propios con su margen de error.</p>
+      <div class="actualizado"><i></i><span id="resumen">Cargando datos…</span></div>
+      <div class="kpis" id="kpis"></div>
     </div>
-    <footer>Proyecto personal y sin ánimo de lucro, no vinculado a ningún organismo. Fuentes previstas: INE, Eurostat, Comisión Europea (Agri-food data portal), FAO.</footer>
-  </main>
+    <div class="revela">
+      <div id="mapaHero" role="img" aria-label="Mapa de Europa con Extremadura conectada a sus regiones de perfil más parecido"></div>
+      <div class="pie-mapa">Extremadura y las regiones de la UE con el perfil más parecido · © EuroGeographics para los límites administrativos</div>
+    </div>
+  </div>
+</section>
+
+<main>
+<section class="bloque b-pulso" id="pulso">
+  <div class="wrap">
+    <div class="cab-bloque revela">
+      <div class="num">01</div>
+      <div>
+        <h2>El pulso</h2>
+        <p>Cómo evoluciona la economía y la sociedad extremeña con el último dato de cada fuente, su comparación con el mismo periodo del año anterior y una estimación de hacia dónde se mueve el paro en los próximos trimestres.</p>
+      </div>
+    </div>
+    <div class="rejilla">
+      <div id="tiles" style="display:contents"></div>
+
+      <div class="tarjeta s8 revela">
+        <h3>Tasa de paro: Extremadura y España <span class="etiqueta-est">estimación</span></h3>
+        <p class="sub">Porcentaje de la población activa, trimestral. A la derecha, estimación para los próximos cuatro trimestres con su intervalo del 80 %.</p>
+        <div class="graf" id="gParo"></div>
+        <div class="pie-t"><span id="notaParo">Elaboración propia con datos extraídos del sitio web del INE: www.ine.es</span><button data-tabla="gParo">Ver tabla</button></div>
+      </div>
+      <div class="tarjeta s4 revela">
+        <h3>Movimientos a vigilar</h3>
+        <p class="sub">Variación interanual del último dato frente a la de los cinco años anteriores. Se marca cuando queda fuera del 90 % central.</p>
+        <div class="alertas" id="alertas"></div>
+      </div>
+
+      <div class="tarjeta s12 revela">
+        <h3>Extremadura frente al resto de comunidades</h3>
+        <p class="sub" id="subRanking">Tasa de paro por comunidad autónoma, último trimestre publicado, de mayor a menor.</p>
+        <div class="graf" id="gCCAA"></div>
+        <div class="pie-t"><span>Elaboración propia con datos extraídos del sitio web del INE: www.ine.es</span><button data-tabla="gCCAA">Ver tabla</button></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="bloque b-europa" id="europa">
+  <div class="wrap">
+    <div class="cab-bloque revela">
+      <div class="num">02</div>
+      <div>
+        <h2>Extremadura en Europa</h2>
+        <p>La región comparada con las regiones NUTS 2 de la Unión Europea: dónde se sitúa en cada indicador, qué regiones tienen un perfil más parecido y si la distancia con la media europea se acorta con los años.</p>
+      </div>
+    </div>
+    <div class="rejilla">
+      <div class="tarjeta s8 revela">
+        <h3>Mapa de regiones europeas</h3>
+        <p class="sub" id="subMapa">Elige un indicador. La altura y la intensidad del color de cada región representan su valor.</p>
+        <div class="filtros" role="group" aria-label="Indicador del mapa" id="selMapa"></div>
+        <div class="dato-mapa" id="datoMapa"></div>
+        <div class="graf alto" id="mapa3d" role="img" aria-label="Mapa 3D de las regiones NUTS 2 de la UE"></div>
+        <div class="pie-t"><span>Fuente: Eurostat, con tratamiento propio · © EuroGeographics para los límites administrativos</span><button data-tabla="mapa3d">Ver tabla</button></div>
+      </div>
+      <div class="tarjeta s4 revela">
+        <h3>Regiones de perfil parecido <span class="etiqueta-est">cálculo propio</span></h3>
+        <p class="sub">Regiones de la UE más cercanas a Extremadura considerando a la vez los indicadores de abajo.</p>
+        <div class="gemelas" id="gemelas"></div>
+        <div class="perfil" id="perfil"></div>
+        <p class="nota">Similitud 100 = mismo perfil; 0 = tan distinta como la región típica de la UE. Parecido de perfil, no cercanía geográfica.</p>
+      </div>
+      <div class="tarjeta s8 revela">
+        <h3>¿Se acorta la distancia con Europa?</h3>
+        <p class="sub" id="subConv">Cada punto es una región: PIB por habitante (UE = 100) al inicio del periodo frente a cuántos puntos gana o pierde cada año respecto a la media.</p>
+        <div class="graf" id="gConv" style="height:380px"></div>
+        <div class="pie-t"><span>Fuente: Eurostat, con tratamiento propio</span><button data-tabla="gConv">Ver tabla</button></div>
+      </div>
+      <div class="tarjeta s4 revela">
+        <h3>PIB por habitante frente a la UE</h3>
+        <p class="sub">Índice UE = 100, en paridad de poder de compra.</p>
+        <div class="graf" id="gPibHist" style="height:380px"></div>
+        <div class="pie-t"><span>Fuente: Eurostat, con tratamiento propio</span><button data-tabla="gPibHist">Ver tabla</button></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="bloque b-campo" id="campo">
+  <div class="wrap">
+    <div class="cab-bloque revela">
+      <div class="num">03</div>
+      <div>
+        <h2>Del mercado al campo</h2>
+        <p>Precios agrarios semanales y mensuales de España, la media de la UE y, cuando existe, el mercado de Badajoz; cómo se mueven juntos los precios españoles y europeos y cómo evolucionan los costes a lo largo de la cadena.</p>
+      </div>
+    </div>
+    <div class="rejilla">
+      <div class="tarjeta s12 revela">
+        <h3>Precios en origen</h3>
+        <p class="sub" id="subPrecio"></p>
+        <div class="filtros" role="group" aria-label="Producto" id="selProducto"></div>
+        <div class="graf" id="gPrecios" style="height:360px"></div>
+        <div class="pie-t"><span>Fuente: Comisión Europea, Agri-food data portal, con tratamiento propio</span><button data-tabla="gPrecios">Ver tabla</button></div>
+      </div>
+      <div class="tarjeta s6 revela">
+        <h3>¿Con cuánto retraso sigue España al precio europeo? <span class="etiqueta-est">cálculo propio</span></h3>
+        <p class="sub">Cerdo de cebo. Correlación entre el cambio semanal del precio medio de la UE y el del precio español una o varias semanas después (últimos cinco años). Las barras por encima de la línea discontinua son estadísticamente distintas de cero.</p>
+        <div class="graf" id="gRetardo"></div>
+        <div class="pie-t"><span>Elaboración propia con datos de la Comisión Europea</span><button data-tabla="gRetardo">Ver tabla</button></div>
+      </div>
+      <div class="tarjeta s6 revela">
+        <h3>Subidas y bajadas <span class="etiqueta-est">cálculo propio</span></h3>
+        <p class="sub">Cerdo de cebo. Cambio del precio español en cuatro semanas por cada 1 % de cambio en la media de la UE, según el sentido del movimiento europeo (últimos cinco años).</p>
+        <div class="graf" id="gAsim"></div>
+        <p class="nota" id="notaAsim"></p>
+        <div class="pie-t"><span>Elaboración propia con datos de la Comisión Europea</span><button data-tabla="gAsim">Ver tabla</button></div>
+      </div>
+      <div class="tarjeta s12 revela">
+        <h3>Cadena de costes</h3>
+        <p class="sub">Último precio de cada eslabón y su variación frente al mismo periodo del año anterior, desde el abono y el pienso hasta el precio del cerdo.</p>
+        <div class="cadena" id="cadena"></div>
+        <div class="pie-t"><span>Fuentes: Comisión Europea, Agri-food data portal; FAO. 2026. FAO Food Price Index. Licencia: CC-BY-4.0.</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer id="fuentes">
+  <div class="wrap">
+    <div class="pie-grid">
+      <div>
+        <h4>Sobre el proyecto</h4>
+        <p><b style="color:var(--ink)">Extremadura en Datos</b> es un proyecto personal y sin ánimo de lucro que reúne datos oficiales sobre Extremadura, los compara con España y Europa y añade análisis estadísticos propios.</p>
+        <p>Los datos se descargan de las fuentes originales cada mañana. El texto de la página es descriptivo y no cambia; solo cambian las cifras.</p>
+        <h4 style="margin-top:22px">Método</h4>
+        <p>Las estimaciones, las regiones de perfil parecido y las relaciones entre precios son cálculos estadísticos propios con incertidumbre; cada gráfico explica cómo se obtienen y, cuando procede, el error que habrían tenido en el pasado.</p>
+        <div class="descargas"><a href="datos/panel.json" download>panel.json</a></div>
+      </div>
+      <div>
+        <h4>Fuentes y licencias</h4>
+        <ul>
+          <li><b>INE</b> · Elaboración propia con datos extraídos del sitio web del INE: www.ine.es</li>
+          <li><b>Eurostat</b> · Fuente: Eurostat (CC BY 4.0), con tratamiento propio</li>
+          <li><b>Comisión Europea</b> · Fuente: Comisión Europea, Agri-food data portal (CC BY 4.0), con tratamiento propio</li>
+          <li><b>FAO</b> · FAO. 2026. FAO Food Price Index. Consultado el <span id="fechaFao">–</span>. https://www.fao.org/worldfoodsituation/foodpricesindex/ Licencia: CC-BY-4.0.</li>
+          <li><b>Mapas</b> · © EuroGeographics para los límites administrativos</li>
+        </ul>
+        <h4 style="margin-top:22px">Última descarga por fuente</h4>
+        <ul id="cargas"></ul>
+      </div>
+      <div>
+        <h4>Avisos</h4>
+        <ul>
+          <li><b>Independencia.</b> Proyecto personal no respaldado ni patrocinado por ninguno de los organismos citados.</li>
+          <li><b>Revisiones.</b> Las fuentes revisan cifras ya publicadas; se muestra la última versión disponible y su fecha.</li>
+          <li><b>Sin garantía.</b> Los datos se ofrecen tal cual, sin garantía de exactitud ni responsabilidad por su uso.</li>
+          <li><b>Privacidad.</b> Web estática, sin cookies.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="legal"><span>© 2026 Extremadura en Datos · proyecto no comercial</span><span class="mono" id="generado"></span></div>
+  </div>
+</footer>
+
+<dialog id="dlg"><div id="dlgBody"></div><form method="dialog" style="text-align:right;margin-top:12px"><button style="all:unset;cursor:pointer;color:var(--ink2);text-decoration:underline">Cerrar</button></form></dialog>
+
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/echarts-gl@2.0.9/dist/echarts-gl.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
+<script>
+"use strict";
+const C={bg:"#0b1016",panel:"#121b26",grid:"#1b2736",line:"#223044",ink:"#e6edf5",ink2:"#a9b6c6",muted:"#8190a3",
+  ext:"#dd6b20",esp:"#1c9fbf",ue:"#9b72f0",otros:"#4a5a6e",pulso:"#22d3ee",europa:"#a78bfa",campo:"#a3e635",ok:"#3fb950",warn:"#d29922"};
+const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
+const nf=(v,d=1)=>v==null||isNaN(v)?"–":Number(v).toLocaleString("es-ES",{minimumFractionDigits:d,maximumFractionDigits:d});
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const charts=[],tablas={};
+const base={textStyle:{fontFamily:"Inter, sans-serif",color:C.ink2},animationDuration:reduce?0:900,
+  tooltip:{backgroundColor:"#0f1620",borderColor:C.line,textStyle:{color:C.ink,fontSize:12},confine:true}};
+const eje=(o={})=>Object.assign({axisLine:{lineStyle:{color:C.line}},axisTick:{show:false},axisLabel:{color:C.muted,fontSize:11},splitLine:{lineStyle:{color:C.grid}}},o);
+function chart(id){const el=document.getElementById(id);if(!el||!window.echarts)return null;const c=echarts.init(el);charts.push(c);return c}
+addEventListener("resize",()=>charts.forEach(c=>c.resize()));
+document.body.classList.remove("sin-js");
+
+function cambioHTML(c,tipo,ref,invertir=false){
+  if(c==null)return `<span class="flat">${esc(ref||"")}</span>`;
+  const u=tipo==="pp"?" p.p.":tipo==="puntos"?" puntos":" %";
+  const cl=Math.abs(c)<0.05?"flat":((c>0)!==invertir?"up":"down");
+  const flecha=Math.abs(c)<0.05?"▬":c>0?"▲":"▼";
+  return `<span class="${cl}">${flecha} ${nf(Math.abs(c),1)}${u} ${esc(ref||"")}</span>`;
+}
+const fechaCorta=iso=>{const d=new Date(iso);return d.toLocaleDateString("es-ES",{day:"2-digit",month:"2-digit",year:"numeric"})};
+
+Promise.all([fetch("datos/panel.json").then(r=>{if(!r.ok)throw new Error("panel "+r.status);return r.json()}),
+             fetch("datos/nuts2.geojson").then(r=>r.ok?r.json():null).catch(()=>null)])
+.then(([P,geo])=>{pintar(P,geo)})
+.catch(e=>{document.querySelector("main").insertAdjacentHTML("beforebegin",`<div class="error-carga">No se pudieron cargar los datos (${esc(e.message)}). Vuelve a intentarlo en unos minutos.</div>`);console.error(e)});
+
+function pintar(P,geo){
+  /* ---------- resumen y pie ---------- */
+  const gen=new Date(P.generado);
+  document.getElementById("resumen").textContent=`Actualizado el ${gen.toLocaleDateString("es-ES")} a las ${gen.toLocaleTimeString("es-ES",{hour:"2-digit",minute:"2-digit"})} · ${P.resumen.indicadores} indicadores · ${nf(P.resumen.observaciones/1e6,1)} M de datos`;
+  document.getElementById("generado").textContent=`Datos generados: ${gen.toLocaleString("es-ES")}`;
+  const nombresFuente={ine:"INE",eurostat:"Eurostat",agrifood:"Comisión Europea (Agri-food)",fao:"FAO"};
+  document.getElementById("cargas").innerHTML=Object.entries(nombresFuente).filter(([k])=>P.resumen.cargas[k]).map(([k,n])=>`<li><b>${n}</b> · ${fechaCorta(P.resumen.cargas[k])}</li>`).join("");
+  if(P.resumen.cargas.fao)document.getElementById("fechaFao").textContent=fechaCorta(P.resumen.cargas.fao);
+
+  /* ---------- cinta ---------- */
+  const it=P.cinta.map(c=>{
+    const v=`${nf(c.valor,c.decimales)}${c.unidad?` <small style="color:var(--muted)">${esc(c.unidad)}</small>`:""}`;
+    const cam=c.cambio==null?`<span class="flat">${esc(c.referencia)}</span>`:cambioHTML(c.cambio,c.cambio_tipo,c.referencia==="interanual"?"":"sem.");
+    return `<span class="it" title="${esc(c.periodo)}"><span class="dot" style="background:var(--${c.bloque})"></span>${esc(c.etiqueta)} <b>${v}</b>${cam}<span style="color:var(--muted)">${esc(c.periodo)}</span></span>`}).join("");
+  document.getElementById("pista").innerHTML=it+`<span aria-hidden="true" style="display:contents">${it}</span>`;
+
+  /* ---------- KPIs ---------- */
+  document.getElementById("kpis").innerHTML=P.kpis.map(k=>{
+    const inv=k.titulo.startsWith("Tasa de paro");
+    const v=k.titulo==="Población"?`${nf(k.valor/1e6,3)} M`:`${nf(k.valor,k.decimales)}${k.unidad?` ${k.unidad}`:""}`;
+    return `<div class="kpi" style="--acc:var(--${k.bloque})"><div class="l">${esc(k.titulo)} · ${esc(k.periodo)}</div><div class="v">${v}</div><div class="d">${cambioHTML(k.cambio,k.cambio_tipo,k.referencia,inv)}</div></div>`}).join("");
+
+  bloquePulso(P.pulso);
+  const nombres=P.europa.nombres;
+  if(geo){
+    geo.features.forEach(f=>{f.properties.name=f.properties.id;if(!nombres[f.properties.id])nombres[f.properties.id]=f.properties.nombre});
+    echarts.registerMap("nuts2",geo);
+    mapaHero(P.europa,geo);
+  }
+  bloqueEuropa(P.europa,!!geo);
+  bloqueCampo(P.campo);
+  animar();
+}
+
+/* ================= BLOQUE 1 ================= */
+function bloquePulso(B){
+  document.getElementById("tiles").innerHTML=B.tiles.map(t=>`
+    <div class="tarjeta s3 tile revela"><div class="l">${esc(t.titulo)}</div>
+    <div class="v">${nf(t.valor,t.decimales)}${t.unidad?`<small>${esc(t.unidad)}</small>`:""}</div>
+    <div class="d">${cambioHTML(t.cambio,t.cambio_tipo,"interanual")}</div>
+    <canvas data-spark='${JSON.stringify(t.spark)}' aria-hidden="true"></canvas>
+    <div class="f">${esc(t.periodo)} · mensual · últimos 36 meses</div></div>`).join("");
+  document.querySelectorAll("canvas[data-spark]").forEach(cv=>{
+    const pts=JSON.parse(cv.dataset.spark).filter(x=>x!=null);if(pts.length<2)return;
+    const dpr=devicePixelRatio||1,w=cv.clientWidth,h=cv.clientHeight;cv.width=w*dpr;cv.height=h*dpr;
+    const g=cv.getContext("2d");g.scale(dpr,dpr);const mn=Math.min(...pts),mx=Math.max(...pts),n=pts.length;
+    const X=i=>2+i*(w-4)/(n-1),Y=p=>h-3-(p-mn)/(mx-mn||1)*(h-6);
+    const grad=g.createLinearGradient(0,0,0,h);grad.addColorStop(0,"rgba(34,211,238,.25)");grad.addColorStop(1,"rgba(34,211,238,0)");
+    g.beginPath();pts.forEach((p,i)=>i?g.lineTo(X(i),Y(p)):g.moveTo(X(i),Y(p)));g.lineTo(X(n-1),h);g.lineTo(X(0),h);g.fillStyle=grad;g.fill();
+    g.beginPath();pts.forEach((p,i)=>i?g.lineTo(X(i),Y(p)):g.moveTo(X(i),Y(p)));g.strokeStyle=C.pulso;g.lineWidth=2;g.stroke();
+    g.beginPath();g.arc(X(n-1),Y(pts[n-1]),3,0,7);g.fillStyle=C.pulso;g.fill();
+  });
+
+  // --- paro + previsión ---
+  const c=chart("gParo");
+  if(c){
+    const S=B.paro.serie,F=B.paro.prevision?B.paro.prevision.puntos:[];
+    const per=S.map(x=>x.periodo).concat(F.map(x=>x.periodo));
+    const nS=S.length,pad=a=>Array(nS-1).fill(null).concat(a);
+    const last=S[nS-1].ext;
+    const ext=S.map(x=>x.ext),esp=S.map(x=>x.esp);
+    const cen=pad([last,...F.map(x=>x.central)]),lo=pad([last,...F.map(x=>x.lo)]),band=pad([0,...F.map(x=>+(x.hi-x.lo).toFixed(2))]);
+    if(B.paro.prevision)document.getElementById("notaParo").textContent=`Elaboración propia con datos extraídos del sitio web del INE: www.ine.es · Método: ${B.paro.prevision.metodo} Error medio a un trimestre: ±${nf(B.paro.prevision.error_medio_1t,1)} p.p. (${B.paro.prevision.n_pruebas} pruebas).`;
+    tablas.gParo={cab:["Periodo","Extremadura (%)","España (%)","Estimación","Intervalo 80 %"],
+      filas:S.map(x=>[x.periodo,nf(x.ext,2),nf(x.esp,2),"",""]).concat(F.map(x=>[x.periodo,"","",nf(x.central,1),`${nf(x.lo,1)} – ${nf(x.hi,1)}`]))};
+    c.setOption({...base,grid:{left:40,right:90,top:34,bottom:30},
+      legend:{top:0,left:0,textStyle:{color:C.ink2,fontSize:12},itemWidth:14,itemHeight:3,icon:"rect",data:["Extremadura","España","Estimación Extremadura"]},
+      tooltip:{...base.tooltip,trigger:"axis",axisPointer:{type:"line",lineStyle:{color:C.muted}},
+        formatter:ps=>{const i=ps[0].dataIndex;if(i<nS)return `<b>${per[i]}</b><br>Extremadura: <b>${nf(ext[i],2)} %</b><br>España: <b>${nf(esp[i],2)} %</b>`;const k=i-nS;const f=F[k];return `<b>${f.periodo}</b> · estimación<br>Valor central: <b>${nf(f.central,1)} %</b><br>Intervalo 80 %: ${nf(f.lo,1)} – ${nf(f.hi,1)} %`}},
+      xAxis:eje({type:"category",data:per,boundaryGap:false,axisLabel:{color:C.muted,fontSize:11,interval:11},splitLine:{show:false}}),
+      yAxis:eje({type:"value",min:0,axisLabel:{color:C.muted,formatter:"{value} %"}}),
+      series:[
+        {type:"line",data:lo,stack:"b",lineStyle:{opacity:0},symbol:"none",silent:true},
+        {type:"line",data:band,stack:"b",lineStyle:{opacity:0},symbol:"none",areaStyle:{color:"rgba(221,107,32,.18)"},silent:true},
+        {name:"España",type:"line",data:esp,symbol:"none",lineStyle:{width:2,color:C.esp},itemStyle:{color:C.esp},endLabel:{show:true,color:C.ink2,fontSize:11,formatter:p=>`España ${nf(p.value,1)}`}},
+        {name:"Extremadura",type:"line",data:ext,symbol:"none",lineStyle:{width:2,color:C.ext},itemStyle:{color:C.ext},
+          markLine:{silent:true,symbol:"none",lineStyle:{color:C.line,type:"dashed"},label:{color:C.muted,formatter:"último dato",position:"insideEndTop"},data:[{xAxis:S[nS-1].periodo}]}},
+        {name:"Estimación Extremadura",type:"line",data:cen,symbol:"circle",symbolSize:8,itemStyle:{color:C.bg,borderColor:C.ext,borderWidth:2},lineStyle:{width:2,type:"dashed",color:C.ext},
+          endLabel:{show:true,color:C.ink2,fontSize:11,formatter:p=>`${nf(p.value,1)} %`}}
+      ]});
+  }
+
+  // --- alertas ---
+  const icoOk=`<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="var(--ok)" stroke-width="2"/><path d="m8 12 3 3 5-6" fill="none" stroke="var(--ok)" stroke-width="2" stroke-linecap="round"/></svg>`;
+  const icoW=`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 2 21h20z" fill="none" stroke="var(--warn)" stroke-width="2"/><path d="M12 10v5M12 17.5v.5" stroke="var(--warn)" stroke-width="2" stroke-linecap="round"/></svg>`;
+  document.getElementById("alertas").innerHTML=B.alertas.map(a=>{const w=a.estado==="atencion";return `<div class="alerta">${w?icoW:icoOk}<div><div class="est" style="color:var(--${w?"warn":"ok"})">${w?"Fuera de lo habitual":"Dentro de lo habitual"}</div><b>${esc(a.titulo)} · ${esc(a.periodo)}</b><span>${esc(a.texto)}</span></div></div>`}).join("")||`<p class="nota">Sin datos suficientes.</p>`;
+
+  // --- ranking ---
+  const g=chart("gCCAA");
+  if(g){
+    const d=B.ranking.datos;
+    document.getElementById("subRanking").textContent=`Tasa de paro por comunidad y ciudad autónoma, ${B.ranking.periodo}, de mayor a menor.`;
+    tablas.gCCAA={cab:["Territorio","Tasa de paro (%)"],filas:d.map(x=>[x.nombre,nf(x.valor,2)])};
+    const corto=n=>n.replace(/, Comunidad (Foral )?de$/,"").replace(/, Principado de$/,"").replace(/, Región de$/,"").replace("Balears, Illes","Illes Balears").replace("Rioja, La","La Rioja").replace("Castilla - La Mancha","Castilla-La Mancha");
+    g.setOption({...base,grid:{left:40,right:10,top:26,bottom:90},
+      tooltip:{...base.tooltip,trigger:"item",formatter:p=>`<b>${esc(d[p.dataIndex].nombre)}</b><br>Tasa de paro: <b>${nf(p.value,2)} %</b>`},
+      xAxis:eje({type:"category",data:d.map(x=>corto(x.nombre)),axisLabel:{color:C.muted,fontSize:11,rotate:45,interval:0},splitLine:{show:false}}),
+      yAxis:eje({type:"value",axisLabel:{color:C.muted,formatter:"{value} %"}}),
+      series:[{type:"bar",barMaxWidth:26,data:d.map(x=>({value:x.valor,itemStyle:{color:x.id==="ES43"?C.ext:x.id==="ES"?C.esp:C.otros,borderRadius:[4,4,0,0]},
+        label:{show:x.id==="ES43"||x.id==="ES",position:"top",color:C.ink,fontSize:11,fontFamily:"JetBrains Mono",formatter:`${nf(x.valor,1)} %`}}))}]});
+  }
+}
+
+/* ================= MAPA PORTADA ================= */
+const centros={};
+function centroide(geom){
+  let mejor=null,area=-1;
+  const polis=geom.type==="Polygon"?[geom.coordinates]:geom.coordinates;
+  polis.forEach(p=>{const ring=p[0];let a=0,cx=0,cy=0;for(let i=0,j=ring.length-1;i<ring.length;j=i++){const f=ring[j][0]*ring[i][1]-ring[i][0]*ring[j][1];a+=f;cx+=(ring[j][0]+ring[i][0])*f;cy+=(ring[j][1]+ring[i][1])*f}
+    if(Math.abs(a)>area&&a!==0){area=Math.abs(a);mejor=[cx/(3*a),cy/(3*a)]}});
+  return mejor;
+}
+function mapaHero(E,geo){
+  geo.features.forEach(f=>centros[f.properties.id]=centroide(f.geometry));
+  const c=chart("mapaHero");if(!c||!centros.ES43)return;
+  const G=E.gemelas.slice(0,5).filter(g=>centros[g.id]);
+  c.setOption({...base,
+    geo:{map:"nuts2",roam:false,center:[6,47],zoom:2.1,silent:true,itemStyle:{areaColor:"#15202d",borderColor:"#26364a",borderWidth:.6},
+      regions:[{name:"ES43",itemStyle:{areaColor:C.ext,borderColor:"#ffb27a"}},...G.map(g=>({name:g.id,itemStyle:{areaColor:"#3b2f63",borderColor:C.europa}}))]},
+    series:[
+      {type:"lines",coordinateSystem:"geo",zlevel:2,effect:{show:!reduce,period:4,trailLength:.25,symbol:"circle",symbolSize:4,color:"#fff"},
+        lineStyle:{color:C.europa,width:1.5,opacity:.6,curveness:.3},data:G.map(g=>({coords:[centros.ES43,centros[g.id]]}))},
+      {type:"effectScatter",coordinateSystem:"geo",zlevel:3,rippleEffect:{brushType:"stroke",scale:reduce?1:4},symbolSize:9,itemStyle:{color:C.ext},
+        label:{show:true,position:"left",color:C.ink,fontSize:12,fontWeight:600,formatter:"Extremadura"},data:[{name:"Extremadura",value:centros.ES43}]},
+      {type:"scatter",coordinateSystem:"geo",zlevel:3,symbolSize:7,itemStyle:{color:C.europa},labelLayout:{hideOverlap:true},
+        label:{show:true,position:"right",color:C.ink2,fontSize:11,formatter:p=>p.name},data:G.map(g=>({name:g.nombre,value:centros[g.id]}))}
+    ]});
+}
+
+/* ================= BLOQUE 2 ================= */
+function bloqueEuropa(E,hayGeo){
+  const nombres=E.nombres;
+  // gemelas
+  document.getElementById("gemelas").innerHTML=E.gemelas.slice(0,5).map(g=>`<div class="gemela"><b>${esc(nombres[g.id]||g.nombre)}</b><small class="mono">${g.id}</small><span class="sim">${g.similitud}</span><div class="barra"><i style="width:${g.similitud}%"></i></div></div>`).join("");
+  document.getElementById("perfil").innerHTML=`<div style="color:var(--muted)"><span>Perfil de Extremadura</span><span></span></div>`+Object.entries(E.perfil).map(([n,v])=>`<div><span>${esc(n)}</span><b>${nf(v.ext,1)}</b></div>`).join("");
+
+  // mapa 3D
+  const sel=document.getElementById("selMapa");
+  const orden=["pib","renta","paro","empleo","agro","id"].filter(k=>E.capas[k]);
+  sel.innerHTML=orden.map((k,i)=>`<button type="button" data-k="${k}" aria-pressed="${i===0}">${esc(E.capas[k].titulo)}</button>`).join("");
+  let c3d=null;
+  const ramp=["#2a2150","#3b2d6b","#523f94","#6b56b8","#8a74d6","#a996ec"];
+  function pintarCapa(k){
+    const L=E.capas[k];const vals=Object.entries(L.valores);
+    const nums=vals.map(v=>v[1]).sort((a,b)=>a-b);
+    // escala robusta (percentiles 2–98) para que un valor extremo no aplane el mapa
+    const mn=nums[Math.floor(nums.length*.02)],mx=nums[Math.ceil(nums.length*.98)-1];
+    const t=v=>Math.max(0,Math.min(1,(v-mn)/(mx-mn||1)));
+    document.getElementById("subMapa").textContent=`${L.descripcion} Año ${L.anyo}.`;
+    document.getElementById("datoMapa").innerHTML=`<span>Extremadura: <b>${nf(L.ext,L.decimales)} ${esc(L.unidad)}</b></span><span>Puesto <b>${L.puesto_ext}</b> de ${L.n} (de mayor a menor)</span>${L.ue!=null?`<span>Media UE: <b>${nf(L.ue,L.decimales)}</b></span>`:""}`;
+    tablas.mapa3d={cab:["Región","Código",`${L.titulo} (${L.unidad})`],filas:vals.sort((a,b)=>b[1]-a[1]).map(([id,v])=>[nombres[id]||id,id,nf(v,L.decimales)])};
+    if(!hayGeo)return;
+    if(!c3d)c3d=chart("mapa3d");
+    c3d.setOption({...base,backgroundColor:"transparent",
+      tooltip:{...base.tooltip,formatter:p=>{const v=L.valores[p.name];return `<b>${esc(nombres[p.name]||p.name)}</b> <span style="color:${C.muted}">${p.name}</span><br>${esc(L.titulo)}: <b>${v==null?"sin dato":nf(v,L.decimales)}</b> ${v==null?"":esc(L.unidad)}`}},
+      visualMap:{show:true,min:mn,max:mx,left:8,bottom:8,orient:"horizontal",itemWidth:10,itemHeight:140,text:[nf(mx,L.decimales),nf(mn,L.decimales)],textStyle:{color:C.ink2,fontSize:11},inRange:{color:ramp},calculable:false,seriesIndex:[]},
+      geo3D:{map:"nuts2",boxHeight:3,top:-30,regionHeight:0.3,shading:"lambert",
+        light:{main:{intensity:1.2,shadow:true,alpha:40,beta:30},ambient:{intensity:.35}},
+        viewControl:{distance:150,alpha:50,beta:0,center:[0,-8,0],minDistance:60,maxDistance:220,animationDurationUpdate:reduce?0:800},
+        groundPlane:{show:false},environment:"none",postEffect:{enable:false},
+        itemStyle:{color:"#1a2432",borderColor:"#0b1016",borderWidth:.6},
+        emphasis:{itemStyle:{color:C.pulso},label:{show:true,textStyle:{color:C.ink,backgroundColor:"#0f1620",padding:4,fontSize:12},formatter:p=>nombres[p.name]||p.name}},
+        regions:vals.map(([id,v])=>({name:id,height:0.3+t(v)*3,itemStyle:{color:id==="ES43"?C.ext:ramp[Math.min(5,Math.floor(t(v)*6))],borderColor:"#0b1016",borderWidth:.6}}))},
+      series:[{type:"scatter3D",coordinateSystem:"geo3D",symbolSize:0,data:[],silent:true}]
+    },{replaceMerge:["geo3D"]});
+  }
+  sel.addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;sel.querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x===b));pintarCapa(b.dataset.k)});
+  pintarCapa(orden[0]);
+  if(!hayGeo)document.getElementById("mapa3d").innerHTML=`<p class="cargando">Contornos no disponibles; consulta la tabla.</p>`;
+
+  // convergencia
+  const g=chart("gConv");
+  if(g){
+    const K=E.convergencia;const pts=K.puntos;
+    document.getElementById("subConv").textContent=`Cada punto es una región: PIB por habitante en ${K.anyo0} (UE = 100) frente a los puntos que ha ganado o perdido cada año respecto a la media hasta ${K.anyo1}. Por encima de cero, la región se acerca a la media europea.`;
+    const ext=pts.filter(p=>p[0]==="ES43"),esp=pts.filter(p=>p[0].startsWith("ES")&&p[0]!=="ES43"),ue=pts.filter(p=>!p[0].startsWith("ES"));
+    tablas.gConv={cab:["Región",`PIB pc ${K.anyo0} (UE=100)`,"Puntos por año"],filas:[...pts].sort((a,b)=>b[3]-a[3]).map(p=>[p[1],nf(p[2],1),nf(p[3],2)])};
+    const tip=p=>`<b>${esc(p.data[1])}</b><br>PIB pc ${K.anyo0}: <b>${nf(p.data[2],1)}</b> (UE = 100)<br>Cambio: <b>${p.data[3]>0?"+":""}${nf(p.data[3],2)}</b> puntos por año`;
+    g.setOption({...base,grid:{left:50,right:24,top:40,bottom:44},
+      legend:{top:0,right:0,textStyle:{color:C.ink2,fontSize:12},itemWidth:10,itemHeight:10,data:["Extremadura","Otras regiones de España","Resto de la UE"]},
+      tooltip:{...base.tooltip,trigger:"item",formatter:tip},
+      xAxis:eje({type:"value",name:`PIB por habitante ${K.anyo0} (UE = 100)`,nameLocation:"middle",nameGap:28,nameTextStyle:{color:C.muted,fontSize:11},scale:true}),
+      yAxis:eje({type:"value",scale:true,name:"Puntos por año",nameTextStyle:{color:C.muted,fontSize:11,align:"left"}}),
+      series:[
+        {name:"Resto de la UE",type:"scatter",data:ue,encode:{x:2,y:3},symbolSize:7,itemStyle:{color:C.otros,opacity:.75}},
+        {name:"Otras regiones de España",type:"scatter",data:esp,encode:{x:2,y:3},symbolSize:9,itemStyle:{color:C.esp,borderColor:C.bg,borderWidth:2}},
+        {name:"Extremadura",type:"scatter",data:ext,encode:{x:2,y:3},symbolSize:16,z:5,itemStyle:{color:C.ext,borderColor:C.bg,borderWidth:2},
+          label:{show:true,position:"right",color:C.ink,fontWeight:600,fontSize:12,formatter:"Extremadura"},
+          markLine:{silent:true,symbol:"none",lineStyle:{color:C.line,type:"dashed"},label:{color:C.muted,fontSize:11},data:[{xAxis:100,label:{formatter:"media UE"}},{yAxis:0,label:{formatter:""}}]}}
+      ]});
+  }
+  // histórico PIB
+  const h=chart("gPibHist");
+  if(h){
+    const H=E.pib_historico;
+    tablas.gPibHist={cab:["Año","Extremadura","España"],filas:H.map(x=>[x.anyo,nf(x.ext,1),nf(x.esp,1)])};
+    const serie=(name,key,color)=>({name,type:"line",data:H.map(x=>x[key]),symbol:"none",lineStyle:{width:2,color},itemStyle:{color},endLabel:{show:true,color:C.ink2,fontSize:11,formatter:p=>nf(p.value,0)}});
+    h.setOption({...base,grid:{left:36,right:34,top:34,bottom:30},
+      legend:{top:0,left:0,textStyle:{color:C.ink2,fontSize:12},itemWidth:14,itemHeight:3,icon:"rect"},
+      tooltip:{...base.tooltip,trigger:"axis",valueFormatter:v=>nf(v,1)},
+      xAxis:eje({type:"category",data:H.map(x=>x.anyo),boundaryGap:false,splitLine:{show:false},axisLabel:{color:C.muted,fontSize:11,interval:5}}),
+      yAxis:eje({type:"value",scale:true}),
+      series:[serie("Extremadura","ext",C.ext),serie("España","esp",C.esp),
+        {type:"line",data:[],markLine:{silent:true,symbol:"none",lineStyle:{color:C.muted,type:"dashed"},label:{color:C.muted,formatter:"UE = 100",position:"insideEndTop"},data:[{yAxis:100}]}}]});
+  }
+}
+
+/* ================= BLOQUE 3 ================= */
+function bloqueCampo(K){
+  const NOM={bad:"Badajoz",esp:"España",ue:"Media UE"},COL={bad:C.ext,esp:C.esp,ue:C.ue};
+  const sel=document.getElementById("selProducto");
+  sel.innerHTML=K.productos.map((p,i)=>`<button type="button" data-k="${i}" aria-pressed="${i===0}">${esc(p.titulo)}</button>`).join("");
+  const c=chart("gPrecios");
+  function pintar(i){
+    const p=K.productos[i];if(!c)return;
+    const claves=["bad","esp","ue"].filter(k=>p.lineas[k]);
+    const ult=claves.map(k=>`${NOM[k]} ${nf(p.ultimo[k].valor,2)} (${fechaCorta(p.ultimo[k].fecha)})`).join(" · ");
+    document.getElementById("subPrecio").textContent=`${p.titulo}, ${p.unidad}. Último dato: ${ult}.`;
+    const fechas=[...new Set(claves.flatMap(k=>p.lineas[k].map(x=>x[0])))].sort();
+    const mapa=Object.fromEntries(claves.map(k=>[k,Object.fromEntries(p.lineas[k])]));
+    tablas.gPrecios={cab:["Fecha",...claves.map(k=>NOM[k])],filas:[...fechas].reverse().map(f=>[fechaCorta(f),...claves.map(k=>nf(mapa[k][f],2))])};
+    c.setOption({...base,grid:{left:54,right:110,top:36,bottom:54},
+      legend:{top:0,left:0,textStyle:{color:C.ink2,fontSize:12},itemWidth:14,itemHeight:3,icon:"rect"},
+      tooltip:{...base.tooltip,trigger:"axis",axisPointer:{type:"line",lineStyle:{color:C.muted}},valueFormatter:v=>v==null?"–":`${nf(v,2)} ${p.unidad}`},
+      xAxis:eje({type:"time",splitLine:{show:false},axisLabel:{color:C.muted,fontSize:11,hideOverlap:true}}),
+      yAxis:eje({type:"value",scale:true}),
+      dataZoom:[{type:"inside",start:55,end:100},{type:"slider",start:55,end:100,height:16,bottom:6,borderColor:C.line,fillerColor:"rgba(163,230,53,.12)",handleStyle:{color:C.campo},textStyle:{color:C.muted},dataBackground:{lineStyle:{color:C.line},areaStyle:{color:C.grid}}}],
+      series:claves.map(k=>({name:NOM[k],type:"line",data:p.lineas[k],symbol:"none",showSymbol:false,connectNulls:false,lineStyle:{width:2,color:COL[k]},itemStyle:{color:COL[k]},emphasis:{focus:"series"},labelLayout:{moveOverlap:"shiftY"},
+        endLabel:{show:true,color:C.ink2,fontSize:11,formatter:x=>`${NOM[k]} ${nf(x.value[1],1)}`}}))},true);
+  }
+  sel.addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;sel.querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x===b));pintar(+b.dataset.k)});
+  if(K.productos.length)pintar(0);
+
+  // transmisión
+  const g=chart("gRetardo");
+  if(g){
+    const D=K.transmision.desfases;const banda=Math.max(...D.map(d=>d.banda||0));
+    tablas.gRetardo={cab:["Semanas de desfase","Correlación","Pares de semanas"],filas:D.map(d=>[d.semanas,nf(d.corr,2),d.n])};
+    g.setOption({...base,grid:{left:44,right:12,top:20,bottom:40},
+      tooltip:{...base.tooltip,trigger:"axis",axisPointer:{type:"shadow",shadowStyle:{color:"rgba(255,255,255,.04)"}},formatter:ps=>{const d=D[ps[0].dataIndex];return `<b>${d.semanas} semana${d.semanas===1?"":"s"} después</b><br>Correlación: <b>${nf(d.corr,2)}</b><br>${d.n} pares de semanas`}},
+      xAxis:eje({type:"category",data:D.map(d=>d.semanas),name:"semanas de desfase",nameLocation:"middle",nameGap:26,nameTextStyle:{color:C.muted,fontSize:11},splitLine:{show:false}}),
+      yAxis:eje({type:"value",min:0,max:1}),
+      series:[{type:"bar",data:D.map(d=>d.corr),barMaxWidth:28,itemStyle:{color:C.esp,borderRadius:[4,4,0,0]},
+        label:{show:true,position:"top",color:C.ink2,fontSize:11,fontFamily:"JetBrains Mono",formatter:x=>x.dataIndex<3?nf(x.value,2):""},
+        markLine:{silent:true,symbol:"none",lineStyle:{color:C.muted,type:"dashed"},label:{color:C.muted,fontSize:10,formatter:"umbral 95 %",position:"insideEndTop"},data:[{yAxis:banda}]}}]});
+  }
+  // asimetría
+  const a=chart("gAsim");
+  if(a){
+    const S=K.asimetria;
+    const d=[["Cuando la UE sube",S.sube,S.n_sube],["Cuando la UE baja",S.baja,S.n_baja]].filter(x=>x[1]!=null);
+    tablas.gAsim={cab:["Sentido","Cambio en España por 1 % en la UE","Semanas"],filas:d.map(x=>[x[0],nf(x[1],2)+" %",x[2]])};
+    document.getElementById("notaAsim").textContent="Un valor de 1 significa que España se mueve en la misma proporción que la UE; por encima de 1, con más fuerza. Estimación por mínimos cuadrados, sensible a semanas atípicas.";
+    a.setOption({...base,grid:{left:130,right:56,top:14,bottom:30},
+      tooltip:{...base.tooltip,trigger:"item",formatter:p=>`<b>${p.name}</b><br>${nf(p.value,2)} % en España por cada 1 % en la UE<br>${d[p.dataIndex][2]} semanas`},
+      xAxis:eje({type:"value",min:0,axisLabel:{color:C.muted,formatter:v=>nf(v,1)}}),
+      yAxis:eje({type:"category",data:d.map(x=>x[0]),inverse:true,axisLabel:{color:C.ink2,fontSize:12},splitLine:{show:false}}),
+      series:[{type:"bar",data:d.map(x=>x[1]),barMaxWidth:34,itemStyle:{color:C.esp,borderRadius:[0,4,4,0]},
+        label:{show:true,position:"right",color:C.ink,fontFamily:"JetBrains Mono",fontSize:12,formatter:x=>nf(x.value,2)},
+        markLine:{silent:true,symbol:"none",lineStyle:{color:C.muted,type:"dashed"},label:{color:C.muted,formatter:"1",position:"end"},data:[{xAxis:1}]}}]});
+  }
+  // cadena
+  document.getElementById("cadena").style.gridTemplateColumns=`repeat(${Math.max(1,K.cadena.length)},1fr)`;
+  document.getElementById("cadena").innerHTML=K.cadena.map(e=>{
+    const cl=e.cambio==null?"flat":Math.abs(e.cambio)<0.05?"flat":e.cambio>0?"up":"down";
+    const txt=e.cambio==null?"–":`${e.cambio>0?"+":"−"}${nf(Math.abs(e.cambio),1)}%`;
+    return `<div class="eslabon"><div class="c ${cl}">${txt}</div><b>${esc(e.titulo)}</b><span>${nf(e.valor,e.valor>=100?0:2)} ${esc(e.unidad)}</span><span style="display:block;color:var(--muted);font-size:11px">${fechaCorta(e.fecha)}</span></div>`}).join("");
+}
+
+/* ---------- tablas accesibles ---------- */
+const dlg=document.getElementById("dlg");
+document.addEventListener("click",e=>{const b=e.target.closest("button[data-tabla]");if(!b)return;const t=tablas[b.dataset.tabla];if(!t)return;
+  const titulo=b.closest(".tarjeta").querySelector("h3").childNodes[0].textContent.trim();
+  document.getElementById("dlgBody").innerHTML=`<h3 style="margin-top:0">${esc(titulo)}</h3><div style="overflow:auto;max-height:60vh"><table><thead><tr>${t.cab.map((h,i)=>`<th class="${i?"n":""}">${esc(h)}</th>`).join("")}</tr></thead><tbody>${t.filas.map(f=>`<tr>${f.map((v,i)=>`<td class="${i?"n":""}">${esc(v)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
+  dlg.showModal()});
+
+function animar(){
+  if(window.gsap&&window.ScrollTrigger&&!reduce){
+    gsap.registerPlugin(ScrollTrigger);
+    gsap.utils.toArray(".revela").forEach(el=>gsap.to(el,{opacity:1,y:0,duration:.8,ease:"power3.out",scrollTrigger:{trigger:el,start:"top 92%",once:true}}));
+  }else{document.querySelectorAll(".revela").forEach(el=>{el.style.opacity=1;el.style.transform="none"})}
+}
+</script>
 </body>
 </html>
