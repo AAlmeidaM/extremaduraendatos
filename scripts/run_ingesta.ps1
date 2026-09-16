@@ -34,6 +34,30 @@ try {
     Pop-Location
 }
 
+# Web publica (2026-09-16, paso 3 de docs/web-extremaduraendatos.md):
+# regenera web/datos/*.json y, si han cambiado, los sube a GitHub; Vercel
+# despliega solo. Un fallo aqui no cambia el codigo de salida de la ingesta.
+Push-Location $proyectoDir
+try {
+    $ErrorActionPreference = 'Continue'
+    & $py scripts\exportar_web.py 2>&1 | ForEach-Object { "$_" } | Tee-Object -FilePath $logFile -Append
+    if ($LASTEXITCODE -eq 0) {
+        git add web/datos 2>&1 | ForEach-Object { "$_" } | Tee-Object -FilePath $logFile -Append
+        git diff --cached --quiet -- web/datos
+        if ($LASTEXITCODE -ne 0) {
+            git commit -m "Datos de la web: $(Get-Date -Format 'yyyy-MM-dd')" -- web/datos 2>&1 | ForEach-Object { "$_" } | Tee-Object -FilePath $logFile -Append
+            git push origin main 2>&1 | ForEach-Object { "$_" } | Tee-Object -FilePath $logFile -Append
+        } else {
+            "Web: sin cambios en web/datos" | Tee-Object -FilePath $logFile -Append
+        }
+    } else {
+        "AVISO: exportar_web.py termino con error; la web conserva los datos anteriores" | Tee-Object -FilePath $logFile -Append
+    }
+} finally {
+    $ErrorActionPreference = 'Stop'
+    Pop-Location
+}
+
 # Copia siempre legible del ultimo log, sin tener que buscar por fecha.
 Copy-Item $logFile (Join-Path $logDir 'latest.log') -Force
 

@@ -132,8 +132,8 @@ exportar_web.py → web/data/*.json  ──────────────�
 | 0 | Requisitos legales y avisos (este documento §3-§4) | — | ✅ |
 | 0b | Solicitar autorización al Observatorio de la Junta | Usuario | ⬜ |
 | 1 | Infraestructura: dominio, GitHub, Vercel, página provisional "próximamente" publicada y actualización automática por `git push` probada | Usuario (cuentas/dominio) | ✅ 2026-09-16: repositorio privado `AAlmeidaM/extremaduraendatos` (rama `main`), proyecto de Vercel con Root Directory `web`, página provisional **publicada** en la dirección `.vercel.app` del proyecto; subida con `subir_a_github.bat`. Pendiente del usuario: añadir `extremaduraendatos.com` en Settings → Domains |
-| 2 | Diseño visual: paleta por bloque, tipografía, componentes (cinta, tarjetas, selector de mapa), maqueta de la página completa con datos de ejemplo | 1 | 🔄 2026-09-16: maqueta en `web/maqueta/` (noindex, datos inventados) pendiente de revisión estética del usuario |
-| 3 | Exportador de datos para la web (`exportar_web.py`): JSON por bloque + cinta de últimos datos, enganchado a la ingesta nocturna y al `git push` | 1 | ⬜ |
+| 2 | Diseño visual: paleta por bloque, tipografía, componentes (cinta, tarjetas, selector de mapa), maqueta de la página completa con datos de ejemplo | 1 | ✅ 2026-09-16: maqueta `web/maqueta/` aprobada por el usuario ("excelente diseño") |
+| 3 | Exportador de datos para la web (`exportar_web.py`): JSON por bloque + cinta de últimos datos, enganchado a la ingesta nocturna y al `git push` | 1 | ✅ 2026-09-16: `scripts/exportar_web.py` → `web/datos/panel.json` + `nuts2.geojson`; `web/index.html` ya muestra datos reales; `run_ingesta.ps1` exporta y sube a GitHub si cambian los datos (pendiente de ver la primera ejecución nocturna) |
 | 4 | **Bloque 3 – Del mercado al campo** con análisis real: precios Badajoz/España/UE, transmisión (cointegración/corrección del error, asimetría) con validación | 2, 3, fase 4 de análisis | ⬜ |
 | 5 | Datos nuevos: `openpyxl`, afiliación Seguridad Social, contornos GISCO, histórico de revisiones | — (puede ir en paralelo a 4) | ⬜ |
 | 6 | **Bloque 1 – El pulso**: termómetro de actividad, predicción con error histórico, alertas, comparativa CCAA | 5 (afiliación, revisiones) | ⬜ |
@@ -143,6 +143,46 @@ exportar_web.py → web/data/*.json  ──────────────�
 
 ## 8. Registro de avances
 
+- 2026-09-16 — Paso 3 — **Panel con datos reales publicado** en la raíz del
+  proyecto de Vercel (`web/index.html`, aún `noindex` hasta poner el dominio).
+  - `scripts/exportar_web.py` (solo lectura, sin dependencias nuevas) genera
+    `web/datos/panel.json` (~210 KB) y descarga una vez los contornos GISCO
+    NUTS 2 2021 1:20M a `web/datos/nuts2.geojson` (234 regiones UE27, sin
+    ultraperiféricas). Carpeta `datos/` y no `data/` porque `.gitignore`
+    excluye `data/`. Lanzador `exportar_web.bat`; inventario de series con
+    `inventario_web.bat` → `_ejecucion_claude/inventario_web.tsv`.
+  - Selección de series por las partes del nombre de origen (separadas por
+    ". "), escogiendo la de más observaciones. No se exporta nada de la Junta.
+  - Contenido real: cinta (11 datos), 4 KPIs, bloque 1 (pernoctaciones,
+    compraventa, hipotecas —suma Badajoz+Cáceres—, sociedades; paro EPA
+    Extremadura y España desde 2008; ranking CCAA; movimientos a vigilar),
+    bloque 2 (6 capas del mapa: PIB pc y renta UE=100, paro, empleo, empleo
+    agrario, I+D; regiones de perfil parecido; convergencia 2012–último año;
+    PIB pc histórico), bloque 3 (7 productos con líneas frescas <150 días:
+    cerdo, lechón, cordero, aceite virgen —con Badajoz—, AOVE, leche, añojo;
+    correlación por desfases UE→España en porcino; asimetría; cadena de costes).
+  - Métodos: previsión del paro = mismo trimestre del año anterior + variación
+    interanual media de 4 trimestres, intervalo 80 % con errores empíricos de
+    43 pruebas (error medio 1 trimestre ±1,4 p.p.); alertas = variación
+    interanual fuera del 5–95 % de los 5 años previos; perfil parecido =
+    distancia euclídea sobre 7 variables tipificadas (similitud 0–100 respecto
+    a la distancia mediana); transmisión = correlación de cambios log semanales
+    con desfase 0–8 semanas, banda 1,96/√n; asimetría = MCO sin constante de
+    cambios a 4 semanas separados por signo del cambio UE.
+  - Cambios de diseño frente a la maqueta por lo que hay de verdad: el porcino
+    no tiene mercado de Badajoz (solo España/UE) → la línea Badajoz solo aparece
+    en aceite; el IPC no se muestra (ver problemas); "población de 65+" sustituida
+    por renta, empleo e I+D; transmisión mostrada como correlación por semanas;
+    se añade el gráfico de PIB pc histórico frente a la UE.
+  - **Actualización automática**: `run_ingesta.ps1` ejecuta el exportador tras
+    la ingesta y, si `web/datos` cambia, hace commit solo de esa carpeta y
+    `git push` (credenciales de Git Credential Manager del usuario). Un fallo del
+    exportador no cambia el código de salida de la ingesta.
+  - **Problemas de datos detectados** (a revisar en la ingesta): IPC por CCAA
+    parado en dic-2025 (probable cambio de base 2025 del INE en enero de 2026 →
+    tablas nuevas); IPI e ICN (industria y comercio) parados en dic-2023; EPA
+    por provincia parada en 4T-2023; precios de cereales de Badajoz en Agri-food
+    sin datos desde ene-2025; IPV en 4T-2025.
 - 2026-09-16 — Paso 2 — Maqueta publicada en `<proyecto>.vercel.app/maqueta/`
   y revisada en navegador a 1440×900: contornos GISCO cargan sin problemas de
   CORS; corregidos solape de la cinta, serie de paro de ejemplo, encuadre de

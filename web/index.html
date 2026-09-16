@@ -481,19 +481,19 @@ function bloquePulso(B){
     if(B.paro.prevision)document.getElementById("notaParo").textContent=`Elaboración propia con datos extraídos del sitio web del INE: www.ine.es · Método: ${B.paro.prevision.metodo} Error medio a un trimestre: ±${nf(B.paro.prevision.error_medio_1t,1)} p.p. (${B.paro.prevision.n_pruebas} pruebas).`;
     tablas.gParo={cab:["Periodo","Extremadura (%)","España (%)","Estimación","Intervalo 80 %"],
       filas:S.map(x=>[x.periodo,nf(x.ext,2),nf(x.esp,2),"",""]).concat(F.map(x=>[x.periodo,"","",nf(x.central,1),`${nf(x.lo,1)} – ${nf(x.hi,1)}`]))};
-    c.setOption({...base,grid:{left:40,right:90,top:34,bottom:30},
+    c.setOption({...base,grid:{left:40,right:96,top:34,bottom:30},
       legend:{top:0,left:0,textStyle:{color:C.ink2,fontSize:12},itemWidth:14,itemHeight:3,icon:"rect",data:["Extremadura","España","Estimación Extremadura"]},
       tooltip:{...base.tooltip,trigger:"axis",axisPointer:{type:"line",lineStyle:{color:C.muted}},
         formatter:ps=>{const i=ps[0].dataIndex;if(i<nS)return `<b>${per[i]}</b><br>Extremadura: <b>${nf(ext[i],2)} %</b><br>España: <b>${nf(esp[i],2)} %</b>`;const k=i-nS;const f=F[k];return `<b>${f.periodo}</b> · estimación<br>Valor central: <b>${nf(f.central,1)} %</b><br>Intervalo 80 %: ${nf(f.lo,1)} – ${nf(f.hi,1)} %`}},
-      xAxis:eje({type:"category",data:per,boundaryGap:false,axisLabel:{color:C.muted,fontSize:11,interval:11},splitLine:{show:false}}),
+      xAxis:eje({type:"category",data:per,boundaryGap:false,axisLabel:{color:C.muted,fontSize:11,interval:15},splitLine:{show:false}}),
       yAxis:eje({type:"value",min:0,axisLabel:{color:C.muted,formatter:"{value} %"}}),
       series:[
         {type:"line",data:lo,stack:"b",lineStyle:{opacity:0},symbol:"none",silent:true},
         {type:"line",data:band,stack:"b",lineStyle:{opacity:0},symbol:"none",areaStyle:{color:"rgba(221,107,32,.18)"},silent:true},
-        {name:"España",type:"line",data:esp,symbol:"none",lineStyle:{width:2,color:C.esp},itemStyle:{color:C.esp},endLabel:{show:true,color:C.ink2,fontSize:11,formatter:p=>`España ${nf(p.value,1)}`}},
+        {name:"España",type:"line",data:esp,symbol:"none",lineStyle:{width:2,color:C.esp},itemStyle:{color:C.esp},labelLayout:{moveOverlap:"shiftY"},endLabel:{show:true,color:C.ink2,fontSize:11,formatter:p=>`España ${nf(p.value,1)}`}},
         {name:"Extremadura",type:"line",data:ext,symbol:"none",lineStyle:{width:2,color:C.ext},itemStyle:{color:C.ext},
           markLine:{silent:true,symbol:"none",lineStyle:{color:C.line,type:"dashed"},label:{color:C.muted,formatter:"último dato",position:"insideEndTop"},data:[{xAxis:S[nS-1].periodo}]}},
-        {name:"Estimación Extremadura",type:"line",data:cen,symbol:"circle",symbolSize:8,itemStyle:{color:C.bg,borderColor:C.ext,borderWidth:2},lineStyle:{width:2,type:"dashed",color:C.ext},
+        {name:"Estimación Extremadura",type:"line",data:cen,symbol:"circle",symbolSize:8,itemStyle:{color:C.bg,borderColor:C.ext,borderWidth:2},lineStyle:{width:2,type:"dashed",color:C.ext},labelLayout:{moveOverlap:"shiftY"},
           endLabel:{show:true,color:C.ink2,fontSize:11,formatter:p=>`${nf(p.value,1)} %`}}
       ]});
   }
@@ -533,7 +533,7 @@ function mapaHero(E,geo){
   const c=chart("mapaHero");if(!c||!centros.ES43)return;
   const G=E.gemelas.slice(0,5).filter(g=>centros[g.id]);
   c.setOption({...base,
-    geo:{map:"nuts2",roam:false,center:[6,47],zoom:2.1,silent:true,itemStyle:{areaColor:"#15202d",borderColor:"#26364a",borderWidth:.6},
+    geo:{map:"nuts2",roam:false,center:[9,45],zoom:1.9,silent:true,itemStyle:{areaColor:"#15202d",borderColor:"#26364a",borderWidth:.6},
       regions:[{name:"ES43",itemStyle:{areaColor:C.ext,borderColor:"#ffb27a"}},...G.map(g=>({name:g.id,itemStyle:{areaColor:"#3b2f63",borderColor:C.europa}}))]},
     series:[
       {type:"lines",coordinateSystem:"geo",zlevel:2,effect:{show:!reduce,period:4,trailLength:.25,symbol:"circle",symbolSize:4,color:"#fff"},
@@ -617,7 +617,7 @@ function bloqueEuropa(E,hayGeo){
       legend:{top:0,left:0,textStyle:{color:C.ink2,fontSize:12},itemWidth:14,itemHeight:3,icon:"rect"},
       tooltip:{...base.tooltip,trigger:"axis",valueFormatter:v=>nf(v,1)},
       xAxis:eje({type:"category",data:H.map(x=>x.anyo),boundaryGap:false,splitLine:{show:false},axisLabel:{color:C.muted,fontSize:11,interval:5}}),
-      yAxis:eje({type:"value",scale:true}),
+      yAxis:eje({type:"value",min:50,max:110}),
       series:[serie("Extremadura","ext",C.ext),serie("España","esp",C.esp),
         {type:"line",data:[],markLine:{silent:true,symbol:"none",lineStyle:{color:C.muted,type:"dashed"},label:{color:C.muted,formatter:"UE = 100",position:"insideEndTop"},data:[{yAxis:100}]}}]});
   }

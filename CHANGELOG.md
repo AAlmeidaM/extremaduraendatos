@@ -1,5 +1,13 @@
 # CHANGELOG — Extremadura en Datos
 
+## 2026-09-16 — Web: panel con datos reales (paso 3)
+
+- `scripts/exportar_web.py` + `exportar_web.bat`: exporta `web/datos/panel.json` y `nuts2.geojson`.
+- `web/index.html`: panel conectado a los datos reales; diseño adaptado a las series disponibles.
+- `scripts/run_ingesta.ps1`: tras la ingesta, exporta y sube a GitHub los datos de la web si cambian.
+- `scripts/inventario_web.py` + `inventario_web.bat`: inventario de series para la web.
+- Detectadas series paradas (IPC CCAA, IPI, ICN, EPA provincia); ver docs/web-extremaduraendatos.md §8.
+
 ## 2026-09-16 — Web: maqueta visual (paso 2)
 
 - `web/maqueta/index.html`: maqueta completa del panel con datos de ejemplo (cinta, portada, 3 bloques, mapa 3D NUTS 2 con selector, pie con fuentes y avisos). Ver docs/web-extremaduraendatos.md §8.
