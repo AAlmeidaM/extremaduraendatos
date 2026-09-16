@@ -105,9 +105,11 @@ exportar_web.py → web/data/*.json  ──────────────�
                                                          extremaduraendatos.com
 ```
 
-- **Repositorio separado para la web** (propuesta): `extremaduraendatos-web`,
-  con el código del sitio y los JSON exportados. El repositorio del backend
-  (con `.env`, scripts internos, etc.) no se publica.
+- **Repositorio (decidido 2026-09-16):** un único repositorio **privado** en
+  GitHub (el actual `extremadura-en-datos`), con la web en `web/`. En Vercel,
+  *Root Directory* = `web`; `web/vercel.json` usa `ignoreCommand` para que
+  solo se reconstruya cuando cambia `web/`. `.env` y `_ejecucion_claude/`
+  están en `.gitignore` (comprobado: nunca se han versionado).
 - **Tecnología prevista:** Astro (sitio estático) · deck.gl + MapLibre
   (mapas 3D con datos) · three.js/globe.gl (portada) · Apache ECharts
   (gráficos) · GSAP ScrollTrigger (animación con scroll).
@@ -130,7 +132,7 @@ exportar_web.py → web/data/*.json  ──────────────�
 |---|---|---|---|
 | 0 | Requisitos legales y avisos (este documento §3-§4) | — | ✅ |
 | 0b | Solicitar autorización al Observatorio de la Junta | Usuario | ⬜ |
-| 1 | Infraestructura: dominio, GitHub, Vercel, página provisional "próximamente" publicada y actualización automática por `git push` probada | Usuario (cuentas/dominio) + comprobar herramientas del PC | ⬜ |
+| 1 | Infraestructura: dominio, GitHub, Vercel, página provisional "próximamente" publicada y actualización automática por `git push` probada | Usuario (cuentas/dominio) + comprobar herramientas del PC | 🔄 PC comprobado (Git 2.55, Node 24.19, npm 11.17; sin `gh` ni CLI de Vercel). Página provisional `web/index.html` + `web/vercel.json` creadas. Decidido: **un solo repositorio privado** en GitHub con la web en `web/` (Root Directory en Vercel) y dominio comprado en Vercel. Falta: cuenta de GitHub y repositorio (usuario), primer `git push`, importar en Vercel y dominio |
 | 2 | Diseño visual: paleta por bloque, tipografía, componentes (cinta, tarjetas, selector de mapa), maqueta de la página completa con datos de ejemplo | 1 | ⬜ |
 | 3 | Exportador de datos para la web (`exportar_web.py`): JSON por bloque + cinta de últimos datos, enganchado a la ingesta nocturna y al `git push` | 1 | ⬜ |
 | 4 | **Bloque 3 – Del mercado al campo** con análisis real: precios Badajoz/España/UE, transmisión (cointegración/corrección del error, asimetría) con validación | 2, 3, fase 4 de análisis | ⬜ |
@@ -142,6 +144,8 @@ exportar_web.py → web/data/*.json  ──────────────�
 
 ## 8. Registro de avances
 
+- 2026-09-16 — Paso 1 — Herramientas del PC comprobadas; página provisional
+  y configuración de Vercel en `web/`; esperando cuenta de GitHub.
 - 2026-09-16 — Diseño — Acordados nombre/dominio, público, estructura,
   estilo y alojamiento (W1–W10). Revisadas las condiciones de uso de las 7
   fuentes; definidos avisos, datos que faltan y orden de trabajo. Sin código.

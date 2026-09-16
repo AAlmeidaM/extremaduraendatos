@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Extremadura en Datos</title>
+  <meta name="description" content="Panel público de datos sobre la economía de Extremadura: coyuntura, comparación con las regiones europeas y precios agrarios. Próximamente.">
+  <meta name="theme-color" content="#0b1016">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230b1016'/%3E%3Cpath d='M7 22l6-6 4 4 8-9' fill='none' stroke='%2322d3ee' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+  <style>
+    :root {
+      --bg: #0b1016; --bg-2: #111923; --text: #e6edf3; --muted: #8b98a5; --line: #1f2a36;
+      --pulso: #22d3ee; --europa: #a78bfa; --campo: #84cc16;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; background: var(--bg); color: var(--text); }
+    body {
+      min-height: 100vh; display: grid; place-items: center; padding: 32px 16px;
+      font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background:
+        radial-gradient(900px 500px at 15% -10%, rgba(34,211,238,.10), transparent 60%),
+        radial-gradient(800px 500px at 110% 110%, rgba(167,139,250,.10), transparent 60%),
+        var(--bg);
+    }
+    main { width: 100%; max-width: 760px; }
+    .marca { display: flex; align-items: center; gap: 12px; color: var(--muted); font-size: 14px; letter-spacing: .08em; text-transform: uppercase; }
+    .punto { width: 8px; height: 8px; border-radius: 50%; background: var(--pulso); box-shadow: 0 0 12px var(--pulso); animation: latido 2s ease-in-out infinite; }
+    @keyframes latido { 50% { opacity: .35; } }
+    h1 { font-size: clamp(36px, 7vw, 64px); line-height: 1.05; margin: 18px 0 16px; letter-spacing: -.02em; }
+    p { color: var(--muted); font-size: 18px; line-height: 1.6; margin: 0 0 28px; }
+    .bloques { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 32px; }
+    .bloque { background: var(--bg-2); border: 1px solid var(--line); border-radius: 12px; padding: 16px; border-top: 3px solid var(--c); }
+    .bloque b { display: block; margin-bottom: 6px; font-size: 16px; }
+    .bloque span { color: var(--muted); font-size: 14px; line-height: 1.5; }
+    footer { color: var(--muted); font-size: 13px; line-height: 1.6; border-top: 1px solid var(--line); padding-top: 16px; }
+    @media (prefers-reduced-motion: reduce) { .punto { animation: none; } }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="marca"><span class="punto" aria-hidden="true"></span>extremaduraendatos.com · en construcción</div>
+    <h1>Extremadura en Datos</h1>
+    <p>Panel público de datos sobre Extremadura, actualizado automáticamente con estadísticas oficiales.</p>
+    <div class="bloques">
+      <div class="bloque" style="--c: var(--pulso)"><b>El pulso</b><span>Coyuntura económica de Extremadura y comparación con el resto de comunidades.</span></div>
+      <div class="bloque" style="--c: var(--europa)"><b>Extremadura en Europa</b><span>Posición entre las regiones de la Unión Europea.</span></div>
+      <div class="bloque" style="--c: var(--campo)"><b>Del mercado al campo</b><span>Precios agrarios en Extremadura, España, la UE y el mundo.</span></div>
+    </div>
+    <footer>Proyecto personal y sin ánimo de lucro, no vinculado a ningún organismo. Fuentes previstas: INE, Eurostat, Comisión Europea (Agri-food data portal), FAO.</footer>
+  </main>
+</body>
+</html>
