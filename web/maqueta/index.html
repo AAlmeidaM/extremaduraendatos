@@ -501,7 +501,7 @@ function mapaHero(){
   const c=chart("mapaHero");if(!c)return;
   const o=CENTROS.ES43;
   c.setOption({...base,
-    geo:{map:"nuts2",roam:false,center:[12,50],zoom:1.75,silent:true,itemStyle:{areaColor:"#15202d",borderColor:"#26364a",borderWidth:.6},
+    geo:{map:"nuts2",roam:false,center:[6,47],zoom:2.1,silent:true,itemStyle:{areaColor:"#15202d",borderColor:"#26364a",borderWidth:.6},
       regions:[{name:"ES43",itemStyle:{areaColor:C.ext,borderColor:"#ffb27a"}},...GEMELAS.map(g=>({name:g[0],itemStyle:{areaColor:"#3b2f63",borderColor:C.europa}}))]},
     series:[
       {type:"lines",coordinateSystem:"geo",zlevel:2,effect:{show:!reduce,period:4,trailLength:.25,symbol:"circle",symbolSize:4,color:"#fff"},
@@ -590,7 +590,7 @@ function precios(k){
     const lag=S.ue[Math.max(0,i-3)];S.esp.push(+(lag*(p.base[1]/p.base[2])+(r()-.5)*p.amp*.03).toFixed(2));S.bad.push(+(S.esp[i]*(p.base[0]/p.base[1])+(r()-.5)*p.amp*.04).toFixed(2))});
   document.getElementById("subPrecio").textContent=`${p.t}, ${p.u}. Últimas 192 semanas.`;
   tablas.gPrecios={cab:["Semana","Badajoz","España","Media UE"],filas:sem.map((s,i)=>[s,fmt(S.bad[i],2),fmt(S.esp[i],2),fmt(S.ue[i],2)]).reverse()};
-  const serie=(name,data,color)=>({name,type:"line",data,symbol:"none",lineStyle:{width:2,color},itemStyle:{color},emphasis:{focus:"series"},
+  const serie=(name,data,color)=>({name,type:"line",data,symbol:"none",lineStyle:{width:2,color},itemStyle:{color},emphasis:{focus:"series"},labelLayout:{moveOverlap:"shiftY"},
     endLabel:{show:true,color:C.ink2,fontSize:11,formatter:x=>`${name} ${fmt(x.value,1)}`}});
   cP.setOption({...base,grid:{left:50,right:130,top:36,bottom:50},
     legend:{top:0,left:0,textStyle:{color:C.ink2,fontSize:12},itemWidth:14,itemHeight:3,icon:"rect"},
@@ -613,7 +613,7 @@ precios("cerdo");
     xAxis:eje({type:"category",data:et,splitLine:{show:false}}),
     yAxis:eje({type:"value",axisLabel:{color:C.muted,formatter:v=>`${v*100} %`}}),
     series:[{type:"bar",data:s,barMaxWidth:28,itemStyle:{color:C.esp,borderRadius:[4,4,0,0]},
-        label:{show:true,position:"top",color:C.ink2,fontSize:11,fontFamily:"JetBrains Mono",formatter:x=>x.dataIndex<3?`${fmt(x.value*100,0)} %`:""}},
+        label:{show:true,position:"insideTop",distance:6,color:"#0b1016",fontSize:11,fontWeight:600,fontFamily:"JetBrains Mono",formatter:x=>x.dataIndex<3?`${fmt(x.value*100,0)} %`:""}},
       {type:"custom",renderItem:(p,api)=>{const x=api.coord([api.value(0),api.value(1)]),y=api.coord([api.value(0),api.value(2)]);return{type:"group",children:[{type:"line",shape:{x1:x[0],y1:x[1],x2:y[0],y2:y[1]},style:{stroke:C.ink2,lineWidth:1.5}},{type:"line",shape:{x1:x[0]-4,y1:x[1],x2:x[0]+4,y2:x[1]},style:{stroke:C.ink2,lineWidth:1.5}},{type:"line",shape:{x1:y[0]-4,y1:y[1],x2:y[0]+4,y2:y[1]},style:{stroke:C.ink2,lineWidth:1.5}}]}},
         data:s.map((_,i)=>[i,lo[i],hi[i]]),silent:true,z:5}]});
 })();

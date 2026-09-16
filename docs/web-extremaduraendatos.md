@@ -143,6 +143,11 @@ exportar_web.py → web/data/*.json  ──────────────�
 
 ## 8. Registro de avances
 
+- 2026-09-16 — Paso 2 — Maqueta publicada en `<proyecto>.vercel.app/maqueta/`
+  y revisada en navegador a 1440×900: contornos GISCO cargan sin problemas de
+  CORS; corregidos solape de la cinta, serie de paro de ejemplo, encuadre de
+  mapas, dispersión de convergencia (codificación x/y) y solape de etiquetas.
+  Pendiente: revisión estética del usuario y prueba en móvil.
 - 2026-09-16 — Paso 2 — Maqueta visual `web/maqueta/index.html` (una sola
   página, sin compilación, librerías desde jsDelivr: ECharts 5.5, echarts-gl
   2.0 para el mapa 3D, GSAP 3.12 ScrollTrigger). Contiene: cinta de últimos
