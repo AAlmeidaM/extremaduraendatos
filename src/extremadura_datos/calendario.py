@@ -129,8 +129,13 @@ def refrescar_si_hace_falta(conn, cliente: IneClient, indicador_id: int, indicad
         db.marcar_calendario_actualizado(conn, indicador_id)
         logger.info("%s: calendario actualizado (%d fechas conocidas).", indicador.codigo, len(fechas))
     except IneApiError as exc:
+        conn.rollback()
         logger.warning("%s: fallo consultando el calendario del INE (%s); se ingerirá igualmente.", indicador.codigo, exc)
     except Exception:  # noqa: BLE001 - un fallo aquí nunca debe frenar la ingesta
+        # Sin este rollback, un error SQL dejaba la transacción abortada y la
+        # "red de seguridad" no servía: la ingesta posterior fallaba con
+        # InFailedSqlTransaction (visto en producción el 2026-09-16).
+        conn.rollback()
         logger.exception("%s: error inesperado actualizando el calendario; se ingerirá igualmente.", indicador.codigo)
 
 

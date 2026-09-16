@@ -33,6 +33,9 @@ class Config:
     ine_request_timeout: int
     ine_request_delay_seconds: float
     log_level: str
+    eurostat_api_base: str = "https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0"
+    eurostat_request_timeout: int = 120
+    eurostat_request_delay_seconds: float = 1.0
 
     @classmethod
     def load(cls) -> "Config":
@@ -50,6 +53,14 @@ class Config:
                 os.environ.get("INE_REQUEST_DELAY_SECONDS", "1")
             ),
             log_level=os.environ.get("LOG_LEVEL", "info"),
+            eurostat_api_base=os.environ.get(
+                "EUROSTAT_API_BASE",
+                "https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0",
+            ),
+            eurostat_request_timeout=int(os.environ.get("EUROSTAT_REQUEST_TIMEOUT", "120")),
+            eurostat_request_delay_seconds=float(
+                os.environ.get("EUROSTAT_REQUEST_DELAY_SECONDS", "1")
+            ),
         )
 
     def ensure_dirs(self) -> None:

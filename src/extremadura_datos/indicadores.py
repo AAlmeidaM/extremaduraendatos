@@ -99,6 +99,16 @@ class Indicador:
     # mensual/anual, que SÍ es una tasa) — v_analisis corrige esos casos
     # mirando el `tipo_dato` real de cada observación, no este campo a solas.
     naturaleza_dato: str | None = None
+    # fuente (2026-09-15): código de la tabla `fuente` ('ine' | 'eurostat').
+    # Decide qué cliente/parser usa ingest.py.
+    fuente: str = "ine"
+    # eurostat_filtros (solo fuente='eurostat'): filtros de dimensión que se
+    # mandan a la API, como tupla de (dimensión, (códigos...)). No se filtra
+    # `geo` (se pide Europa entera y eurostat_parse.clasificar_geo decide qué
+    # territorios se guardan) ni `time`. Imprescindible para no superar el
+    # límite de 5M celdas de Eurostat (HTTP 413) — ver
+    # docs/fuentes-europa-agro.md §1.
+    eurostat_filtros: tuple[tuple[str, tuple[str, ...]], ...] = ()
 
 
 INDICADORES: list[Indicador] = [
@@ -452,18 +462,149 @@ INDICADORES: list[Indicador] = [
         filtro_territorio=_PROVINCIA,
         naturaleza_dato="conteo",
     ),
+    # =====================================================================
+    # --- Eurostat: comparativa NUTS2 europea (2026-09-15) -----------------
+    # =====================================================================
+    # Fase 1 de docs/ampliacion-nuts2-agro.md. Todos anuales. Se descarga
+    # Europa entera; se guardan la UE-27 (agregado), los 27 países, todas sus
+    # NUTS2 y Badajoz/Cáceres (NUTS3) — ver eurostat_parse.clasificar_geo.
+    # Filtros y tamaño de cada petición verificados contra la API real el
+    # 2026-09-15 (todos < 9 MB, ningún 413; detalle en
+    # docs/fuentes-europa-agro.md §1). Las CCAA españolas son NUTS2, así que
+    # estos datos caen en los MISMOS territorios que los del INE (enlazados
+    # por territorio.codigo_nuts).
+    Indicador(
+        codigo="eurostat_pib_nuts2",
+        tabla_id_externo="nama_10r_2gdp",
+        nombre="PIB regional a precios corrientes (NUTS2)",
+        categoria="economia",
+        nivel_territorial="nuts2",
+        periodicidad="anual",
+        naturaleza_dato="monetario",
+        fuente="eurostat",
+        eurostat_filtros=(("unit", ("MIO_EUR", "EUR_HAB", "PPS_EU27_2020_HAB")),),
+    ),
+    Indicador(
+        codigo="eurostat_vab_ramas_nuts2",
+        tabla_id_externo="nama_10r_3gva",
+        nombre="VAB a precios básicos por ramas de actividad (NUTS2)",
+        categoria="economia",
+        nivel_territorial="nuts2",
+        periodicidad="anual",
+        naturaleza_dato="monetario",
+        fuente="eurostat",
+        eurostat_filtros=(("unit", ("CP_MEUR",)),),
+    ),
+    Indicador(
+        codigo="eurostat_paro_nuts2",
+        tabla_id_externo="lfst_r_lfu3rt",
+        nombre="Tasa de paro por sexo y edad (NUTS2)",
+        categoria="empleo",
+        nivel_territorial="nuts2",
+        periodicidad="anual",
+        naturaleza_dato="tasa",
+        fuente="eurostat",
+        eurostat_filtros=(
+            ("isced11", ("TOTAL",)),
+            ("sex", ("T", "M", "F")),
+            ("age", ("Y15-74", "Y15-24")),
+        ),
+    ),
+    Indicador(
+        codigo="eurostat_empleo_nuts2",
+        tabla_id_externo="lfst_r_lfe2emprt",
+        nombre="Tasa de empleo 20-64 años por sexo (NUTS2)",
+        categoria="empleo",
+        nivel_territorial="nuts2",
+        periodicidad="anual",
+        naturaleza_dato="tasa",
+        fuente="eurostat",
+        eurostat_filtros=(("sex", ("T", "M", "F")), ("age", ("Y20-64",))),
+    ),
+    Indicador(
+        codigo="eurostat_ocupados_ramas_nuts2",
+        tabla_id_externo="lfst_r_lfe2en2",
+        nombre="Ocupados por rama de actividad, miles (NUTS2)",
+        categoria="empleo",
+        nivel_territorial="nuts2",
+        periodicidad="anual",
+        naturaleza_dato="conteo",
+        fuente="eurostat",
+        eurostat_filtros=(("sex", ("T",)), ("age", ("Y15-74",))),
+    ),
+    Indicador(
+        codigo="eurostat_id_nuts2",
+        tabla_id_externo="rd_e_gerdreg",
+        nombre="Gasto en I+D por sector de ejecución (NUTS2)",
+        categoria="innovacion",
+        nivel_territorial="nuts2",
+        periodicidad="anual",
+        # Mezcla % del PIB y €/habitante: la naturaleza por defecto es la
+        # tasa; distinguir por serie_atributos->'unit' al analizar.
+        naturaleza_dato="tasa",
+        fuente="eurostat",
+        eurostat_filtros=(("unit", ("PC_GDP", "EUR_HAB")),),
+    ),
+    Indicador(
+        codigo="eurostat_poblacion_nuts2",
+        tabla_id_externo="demo_r_d2jan",
+        nombre="Población a 1 de enero (NUTS2)",
+        categoria="demografia",
+        nivel_territorial="nuts2",
+        periodicidad="anual",
+        naturaleza_dato="conteo",
+        fuente="eurostat",
+        eurostat_filtros=(("sex", ("T",)), ("age", ("TOTAL",))),
+    ),
+    Indicador(
+        codigo="eurostat_renta_hogares_nuts2",
+        tabla_id_externo="nama_10r_2hhinc",
+        nombre="Renta disponible neta de los hogares (NUTS2)",
+        categoria="economia",
+        nivel_territorial="nuts2",
+        periodicidad="anual",
+        naturaleza_dato="monetario",
+        fuente="eurostat",
+        eurostat_filtros=(
+            ("unit", ("PPS_EU27_2020_HAB", "EUR_HAB")),
+            ("na_item", ("B6N",)),
+            ("direct", ("BAL",)),
+        ),
+    ),
+    Indicador(
+        codigo="eurostat_ganaderia_nuts2",
+        tabla_id_externo="ef_lsk_main",
+        nombre="Cabaña ganadera por especie (NUTS2, encuesta de estructuras agrarias)",
+        categoria="agrario",
+        nivel_territorial="nuts2",
+        periodicidad="anual",
+        naturaleza_dato="conteo",
+        fuente="eurostat",
+        eurostat_filtros=(
+            ("farmtype", ("TOTAL",)),
+            ("so_eur", ("TOTAL",)),
+            ("uaarea", ("TOTAL",)),
+            ("lsu", ("TOTAL",)),
+            ("statinfo", ("TOTAL",)),
+            ("unit", ("LSU", "HD")),
+        ),
+    ),
 ]
 
 
 def _validar_catalogo() -> None:
     codigos = [i.codigo for i in INDICADORES]
-    tablas = [i.tabla_id_externo for i in INDICADORES]
+    tablas = [(i.fuente, i.tabla_id_externo) for i in INDICADORES]
     duplicados_codigo = {c for c in codigos if codigos.count(c) > 1}
     duplicados_tabla = {t for t in tablas if tablas.count(t) > 1}
     if duplicados_codigo:
         raise ValueError(f"Códigos de indicador duplicados en indicadores.py: {duplicados_codigo}")
     if duplicados_tabla:
-        raise ValueError(f"Tablas del INE duplicadas en indicadores.py: {duplicados_tabla}")
+        raise ValueError(f"Tablas duplicadas (fuente, tabla) en indicadores.py: {duplicados_tabla}")
+    fuentes_validas = {"ine", "eurostat"}
+    desconocidas = {i.fuente for i in INDICADORES} - fuentes_validas
+    if desconocidas:
+        raise ValueError(f"Fuentes desconocidas en indicadores.py: {desconocidas}")
 
 
 _validar_catalogo()

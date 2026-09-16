@@ -64,7 +64,84 @@ def ensure_schema(conn) -> None:
     logger.info("Esquema verificado/aplicado (%s).", SCHEMA_FILE.name)
 
 
-def get_territorio_id(conn, clave: str) -> int:
+# Nombres en castellano de los 27 Estados miembros (código Eurostat → nombre),
+# para dar de alta los países la primera vez que llegan datos de Eurostat
+# (2026-09-15). España ya existe como territorio y se enlaza por codigo_nuts.
+NOMBRES_PAISES_UE27 = {
+    "AT": "Austria", "BE": "Bélgica", "BG": "Bulgaria", "CY": "Chipre",
+    "CZ": "Chequia", "DE": "Alemania", "DK": "Dinamarca", "EE": "Estonia",
+    "EL": "Grecia", "ES": "España", "FI": "Finlandia", "FR": "Francia",
+    "HR": "Croacia", "HU": "Hungría", "IE": "Irlanda", "IT": "Italia",
+    "LT": "Lituania", "LU": "Luxemburgo", "LV": "Letonia", "MT": "Malta",
+    "NL": "Países Bajos", "PL": "Polonia", "PT": "Portugal", "RO": "Rumanía",
+    "SE": "Suecia", "SI": "Eslovenia", "SK": "Eslovaquia",
+}
+
+
+def get_or_create_territorio_nuts(conn, codigo_nuts: str, etiqueta_origen: str | None) -> int:
+    """Resuelve (o da de alta) un territorio por su código NUTS/Eurostat.
+
+    - Si ya existe una fila con ese `codigo_nuts` (España, las 19 CCAA,
+      Badajoz, Cáceres y la UE-27 vienen sembradas en sql/001_schema.sql), se
+      devuelve esa: así los datos de Eurostat y del INE comparten territorio.
+    - Si no, se crea: países UE-27 con nivel 'pais' (padre = UE-27) y
+      regiones NUTS2 con nivel 'nuts2' (padre = su país, que se crea antes
+      si hace falta). El nombre es la etiqueta de Eurostat; como `territorio`
+      exige nombre único por nivel, si otra región ya tiene ese nombre se
+      añade el código entre paréntesis.
+    """
+    from .eurostat_parse import clasificar_geo  # import local: evita ciclo
+
+    with conn.cursor() as cur:
+        cur.execute("SELECT id FROM territorio WHERE codigo_nuts = %s", (codigo_nuts,))
+        row = cur.fetchone()
+        if row is not None:
+            return row[0]
+
+    nivel = clasificar_geo(codigo_nuts)
+    if nivel == "pais":
+        padre_id = _territorio_id_por_nuts(conn, "EU27_2020")
+        nombre = NOMBRES_PAISES_UE27.get(codigo_nuts, etiqueta_origen or codigo_nuts)
+    elif nivel == "nuts2":
+        pais = codigo_nuts[:2]
+        padre_id = get_or_create_territorio_nuts(conn, pais, NOMBRES_PAISES_UE27.get(pais))
+        nombre = etiqueta_origen or codigo_nuts
+    else:
+        raise ValueError(
+            f"Código NUTS {codigo_nuts!r} (nivel {nivel!r}) no se da de alta automáticamente: "
+            f"debería venir sembrado en sql/001_schema.sql."
+        )
+
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT 1 FROM territorio WHERE nivel = %s AND nombre = %s", (nivel, nombre)
+        )
+        if cur.fetchone() is not None:
+            nombre = f"{nombre} ({codigo_nuts})"
+        cur.execute(
+            """
+            INSERT INTO territorio (nivel, codigo_nuts, nombre, padre_id)
+            VALUES (%s, %s, %s, %s)
+            RETURNING id
+            """,
+            (nivel, codigo_nuts, nombre, padre_id),
+        )
+        nuevo_id = cur.fetchone()[0]
+    return nuevo_id
+
+
+def _territorio_id_por_nuts(conn, codigo_nuts: str) -> int | None:
+    with conn.cursor() as cur:
+        cur.execute("SELECT id FROM territorio WHERE codigo_nuts = %s", (codigo_nuts,))
+        row = cur.fetchone()
+    return row[0] if row else None
+
+
+def get_territorio_id(conn, clave: str, etiqueta_origen: str | None = None) -> int:
+    from .eurostat_parse import PREFIJO_CLAVE_NUTS  # import local: evita ciclo
+
+    if clave.startswith(PREFIJO_CLAVE_NUTS):
+        return get_or_create_territorio_nuts(conn, clave[len(PREFIJO_CLAVE_NUTS):], etiqueta_origen)
     nombre = TERRITORIO_CLAVE_A_NOMBRE.get(clave)
     if nombre is None:
         raise ValueError(f"Clave de territorio desconocida: {clave!r}")
@@ -121,7 +198,7 @@ def get_or_create_indicador(conn, indicador: Indicador) -> int:
             SELECT id, %(tabla_id_externo)s, %(codigo)s, %(nombre)s, %(categoria)s,
                    %(nivel_territorial)s, %(periodicidad)s, %(ine_operacion_id)s,
                    %(ine_publicacion_id)s, %(naturaleza_dato)s
-            FROM fuente WHERE codigo = 'ine'
+            FROM fuente WHERE codigo = %(fuente)s
             ON CONFLICT (codigo) DO UPDATE SET
                 nombre = EXCLUDED.nombre,
                 categoria = EXCLUDED.categoria,
@@ -147,11 +224,36 @@ def get_or_create_indicador(conn, indicador: Indicador) -> int:
                 "ine_operacion_id": indicador.ine_operacion_id,
                 "ine_publicacion_id": indicador.ine_publicacion_id,
                 "naturaleza_dato": indicador.naturaleza_dato,
+                "fuente": indicador.fuente,
             },
         )
         row = cur.fetchone()
     conn.commit()
+    if row is None:
+        raise RuntimeError(
+            f"La fuente {indicador.fuente!r} no existe en la tabla `fuente` "
+            f"(¿se aplicó sql/001_schema.sql?)."
+        )
     return row[0]
+
+
+# --- Fecha de actualización en origen (Eurostat, 2026-09-15) ----------------
+
+def origen_actualizado(conn, indicador_id: int) -> str | None:
+    """Último valor de `updated` de Eurostat ya ingerido con éxito para este
+    indicador (texto tal cual lo da la API), o None si nunca se ha cargado."""
+    with conn.cursor() as cur:
+        cur.execute("SELECT origen_actualizado FROM indicador WHERE id = %s", (indicador_id,))
+        row = cur.fetchone()
+    return row[0] if row else None
+
+
+def guardar_origen_actualizado(conn, indicador_id: int, valor: str | None) -> None:
+    with conn.cursor() as cur:
+        cur.execute(
+            "UPDATE indicador SET origen_actualizado = %s WHERE id = %s", (valor, indicador_id)
+        )
+    conn.commit()
 
 
 # --- Calendario oficial de publicaciones del INE (ver calendario.py) --------
@@ -197,7 +299,13 @@ def upsert_fechas_calendario(conn, indicador_id: int, fechas: list[tuple]) -> No
     """`fechas`: lista de (fecha: date, periodo_referencia: str | None)."""
     if not fechas:
         return
-    registros = [(indicador_id, fecha, periodo) for fecha, periodo in fechas]
+    # Una misma fecha puede venir repetida en la respuesta del INE (varias
+    # referencias publicadas el mismo día — visto el 2026-09-16 en turismo,
+    # vivienda, EPA...). Repetida dentro del mismo INSERT ... ON CONFLICT DO
+    # UPDATE, Postgres aborta con CardinalityViolation: se deja una fila por
+    # fecha (la última referencia vista).
+    por_fecha = {fecha: periodo for fecha, periodo in fechas}
+    registros = [(indicador_id, fecha, periodo) for fecha, periodo in por_fecha.items()]
     with conn.cursor() as cur:
         psycopg2.extras.execute_values(
             cur,
@@ -267,7 +375,9 @@ def upsert_observaciones(
     registros = []
     for f in filas:
         if f.territorio_clave not in cache_territorio:
-            cache_territorio[f.territorio_clave] = get_territorio_id(conn, f.territorio_clave)
+            cache_territorio[f.territorio_clave] = get_territorio_id(
+                conn, f.territorio_clave, f.territorio_nombre_origen
+            )
         territorio_id = cache_territorio[f.territorio_clave]
 
         # Misma logica que la columna generada clave_natural en la BD (COD si

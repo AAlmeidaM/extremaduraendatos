@@ -80,6 +80,10 @@ logger = logging.getLogger(__name__)
 # Tempus3 legacy, pero NO se han visto todavía en datos reales — si aparecen
 # y no encajan, este es el único sitio que hay que ajustar.
 _RE_PERIODO_ANUAL = re.compile(r"^(\d{4})\(([A-Za-z]+)\)$")
+# Año a secas ("2022"), sin letra de estado: visto el 2026-09-16 en la primera
+# ingesta incremental real de las tablas CRE (76926/77196) para los años ya
+# consolidados; antes generaba un aviso por punto y esos años no se cargaban.
+_RE_PERIODO_ANUAL_SIMPLE = re.compile(r"^(\d{4})$")
 _RE_PERIODO_TRIMESTRAL = re.compile(r"^(\d{4})T(\d)$")
 _RE_PERIODO_MENSUAL = re.compile(r"^(\d{4})M(\d{1,2})$")
 
@@ -93,6 +97,10 @@ def _fecha_desde_nombre_periodo(nombre_periodo: str) -> tuple[date, int, str, st
     if m:
         anyo = int(m.group(1))
         return date(anyo, 1, 1), anyo, "A", m.group(2)
+    m = _RE_PERIODO_ANUAL_SIMPLE.match(nombre_periodo)
+    if m:
+        anyo = int(m.group(1))
+        return date(anyo, 1, 1), anyo, "A", None
     m = _RE_PERIODO_TRIMESTRAL.match(nombre_periodo)
     if m:
         anyo, trimestre = int(m.group(1)), int(m.group(2))
@@ -156,6 +164,11 @@ class ObservacionParseada:
     # territorio), tal cual: {T3_Variable: {"nombre": ..., "codigo": ...}}.
     # Se guarda en serie.atributos (JSONB) — ver sql/001_schema.sql.
     serie_atributos: dict[str, Any] = field(default_factory=dict)
+    # Solo fuentes con territorio por código (Eurostat, 2026-09-15): etiqueta
+    # del territorio tal y como la da la fuente, para poder dar de alta en
+    # `territorio` regiones europeas que aún no existen (ver
+    # db.get_territorio_id y eurostat_parse.py). El INE no lo usa.
+    territorio_nombre_origen: str | None = None
 
 
 def _periodo_codigo(periodicidad: str, fecha: date, periodo_ine: str | None) -> str:

@@ -362,8 +362,20 @@ SELECT
     i.nombre            AS indicador_nombre,
     i.categoria,
     i.naturaleza_dato   AS naturaleza_dato_tabla,
+    -- Corregido 2026-09-16: en el INE `observacion.tipo_dato` trae el estado
+    -- del dato ("Definitivo"/"Provisional"), no si es índice o variación. Eso
+    -- va en una dimensión de la serie (serie.atributos) cuyo NOMBRE cambia
+    -- según la tabla — verificado en producción: "Índices y Tasas" (IPC, IPI,
+    -- IPV), "Índice y tasas" (ICN), "Tipo de dato" (EPA, sociedades...),
+    -- "magnitud" (CRE: "Tasas de variación interanuales", "Estructura
+    -- porcentual"). Por eso se busca en el valor de cualquier dimensión.
+    -- Antes solo se miraba tipo_dato y las variaciones salían como 'indice'.
     CASE
-        WHEN o.tipo_dato ILIKE '%variaci%' OR o.tipo_dato ILIKE '%tasa%' THEN 'tasa'
+        WHEN o.tipo_dato ILIKE '%variaci%' OR o.tipo_dato ILIKE '%tasa%'
+          OR EXISTS (
+                SELECT 1 FROM jsonb_each(s.atributos) AS dim(clave, valor)
+                WHERE dim.valor->>'nombre' ILIKE ANY (ARRAY['%variaci%', '%tasa%', '%porcentual%'])
+             ) THEN 'tasa'
         ELSE i.naturaleza_dato
     END                 AS naturaleza_dato_efectiva,
     t.id                AS territorio_id,
@@ -383,6 +395,10 @@ SELECT
     CASE
         WHEN i.codigo NOT IN ('ine_poblacion_ccaa', 'ine_poblacion_provincia')
              AND (CASE WHEN o.tipo_dato ILIKE '%variaci%' OR o.tipo_dato ILIKE '%tasa%'
+                         OR EXISTS (
+                               SELECT 1 FROM jsonb_each(s.atributos) AS dim(clave, valor)
+                               WHERE dim.valor->>'nombre' ILIKE ANY (ARRAY['%variaci%', '%tasa%', '%porcentual%'])
+                            )
                        THEN 'tasa' ELSE i.naturaleza_dato END) = 'conteo'
              AND p.poblacion IS NOT NULL AND p.poblacion <> 0
         THEN round((o.valor / p.poblacion) * 1000, 4)
@@ -400,3 +416,87 @@ LEFT JOIN LATERAL (
     LIMIT 1
 ) p ON TRUE
 WHERE NOT o.secreto;
+
+-- =============================================================================
+--  Ampliación Eurostat: comparativa NUTS2 europea (2026-09-15)
+--  Fase 1 de docs/ampliacion-nuts2-agro.md. Idempotente como el resto.
+--  - Nueva fuente 'eurostat'.
+--  - territorio.codigo_nuts: código NUTS/Eurostat. Las CCAA españolas SON
+--    regiones NUTS2, así que se reutilizan las filas ya existentes (INE y
+--    Eurostat comparten territorio). Países UE-27 y regiones NUTS2 del resto
+--    de Europa se crean solas en la primera carga (db.get_or_create_territorio_nuts).
+--  - Nuevos niveles: 'nuts2' (región europea no española) y 'agregado' (UE-27).
+--  - indicador.origen_actualizado: último `updated` de Eurostat ya cargado,
+--    para no volver a descargar un dataset sin cambios en modo incremental.
+-- =============================================================================
+
+INSERT INTO fuente (codigo, nombre, url_base) VALUES
+    ('eurostat', 'Eurostat', 'https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0')
+ON CONFLICT (codigo) DO NOTHING;
+
+ALTER TABLE territorio ADD COLUMN IF NOT EXISTS codigo_nuts TEXT;
+CREATE UNIQUE INDEX IF NOT EXISTS uq_territorio_codigo_nuts
+    ON territorio (codigo_nuts) WHERE codigo_nuts IS NOT NULL;
+
+ALTER TABLE indicador ADD COLUMN IF NOT EXISTS origen_actualizado TEXT;
+
+-- Ampliar los CHECK de nivel. Solo se tocan si todavía no admiten 'nuts2'
+-- (así reaplicar el esquema cada día no reescribe restricciones).
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'territorio_nivel_check'
+          AND pg_get_constraintdef(oid) LIKE '%nuts2%'
+    ) THEN
+        ALTER TABLE territorio DROP CONSTRAINT IF EXISTS territorio_nivel_check;
+        ALTER TABLE territorio ADD CONSTRAINT territorio_nivel_check
+            CHECK (nivel IN ('pais', 'ccaa', 'provincia', 'nuts2', 'agregado'));
+    END IF;
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'indicador_nivel_territorial_check'
+          AND pg_get_constraintdef(oid) LIKE '%nuts2%'
+    ) THEN
+        ALTER TABLE indicador DROP CONSTRAINT IF EXISTS indicador_nivel_territorial_check;
+        ALTER TABLE indicador ADD CONSTRAINT indicador_nivel_territorial_check
+            CHECK (nivel_territorial IN ('pais', 'ccaa', 'provincia', 'ccaa_y_provincia', 'nuts2'));
+    END IF;
+END $$;
+
+-- Agregado UE-27 (referencia de comparación).
+INSERT INTO territorio (nivel, codigo_nuts, nombre, padre_id)
+    VALUES ('agregado', 'EU27_2020', 'Unión Europea (27)', NULL)
+ON CONFLICT (nivel, nombre) DO NOTHING;
+
+-- Códigos NUTS de los territorios españoles ya existentes (NUTS 2021/2024,
+-- iguales para España). Solo rellena si está vacío.
+UPDATE territorio t SET codigo_nuts = v.codigo_nuts
+FROM (VALUES
+    ('pais', 'España', 'ES'),
+    ('ccaa', 'Galicia', 'ES11'),
+    ('ccaa', 'Asturias, Principado de', 'ES12'),
+    ('ccaa', 'Cantabria', 'ES13'),
+    ('ccaa', 'País Vasco', 'ES21'),
+    ('ccaa', 'Navarra, Comunidad Foral de', 'ES22'),
+    ('ccaa', 'Rioja, La', 'ES23'),
+    ('ccaa', 'Aragón', 'ES24'),
+    ('ccaa', 'Madrid, Comunidad de', 'ES30'),
+    ('ccaa', 'Castilla y León', 'ES41'),
+    ('ccaa', 'Castilla - La Mancha', 'ES42'),
+    ('ccaa', 'Extremadura', 'ES43'),
+    ('ccaa', 'Cataluña', 'ES51'),
+    ('ccaa', 'Comunitat Valenciana', 'ES52'),
+    ('ccaa', 'Balears, Illes', 'ES53'),
+    ('ccaa', 'Andalucía', 'ES61'),
+    ('ccaa', 'Murcia, Región de', 'ES62'),
+    ('ccaa', 'Ceuta', 'ES63'),
+    ('ccaa', 'Melilla', 'ES64'),
+    ('ccaa', 'Canarias', 'ES70'),
+    ('provincia', 'Badajoz', 'ES431'),
+    ('provincia', 'Cáceres', 'ES432')
+) AS v(nivel, nombre, codigo_nuts)
+WHERE t.nivel = v.nivel AND t.nombre = v.nombre AND t.codigo_nuts IS NULL;
+
+-- España conserva padre_id NULL (raíz de la jerarquía INE); el resto de
+-- países UE-27 cuelgan de la UE-27.

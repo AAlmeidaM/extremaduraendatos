@@ -372,3 +372,12 @@ def test_formato_nombreperiodo_letra_no_es_siempre_a():
     assert filas[0].periodo_fecha == date(2023, 1, 1)
     assert filas[0].periodo_codigo == "A"
     assert filas[0].tipo_dato == "P"
+
+
+def test_formato_nombreperiodo_anyo_sin_letra():
+    """2026-09-16: en la ingesta incremental real, las tablas CRE traen los
+    años consolidados como '2022' a secas (sin '(A)'/'(P)')."""
+    from extremadura_datos.parse import _fecha_desde_nombre_periodo
+
+    assert _fecha_desde_nombre_periodo("2022") == (date(2022, 1, 1), 2022, "A", None)
+    assert _fecha_desde_nombre_periodo("2023(P)") == (date(2023, 1, 1), 2023, "A", "P")

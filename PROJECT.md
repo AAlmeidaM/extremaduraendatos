@@ -6,7 +6,7 @@
 >
 > Estándar de referencia: `C:\OfficeLab\PROJECT_STANDARD.md`
 
-**Última actualización:** 2026-08-28
+**Última actualización:** 2026-09-16
 
 ---
 
@@ -76,11 +76,11 @@ idempotente.
 Programador de tareas (diario) -> run_ingesta.ps1 -> python -m extremadura_datos.ingest
                                                             |
                                                             v
-                                          IneClient (API JSON del INE, Tempus3)
-                                                            |
-                                                            v
-                                    parse.py (filtra Extremadura/Badajoz/Cáceres,
-                                               normaliza a filas por SERIE)
+                     IneClient (API JSON del INE, Tempus3)   EurostatClient (JSON-stat, 2026-09-15)
+                                          |                                  |
+                                          v                                  v
+                     parse.py (filtra CCAA/provincias,      eurostat_parse.py (UE-27, países,
+                               normaliza a filas por SERIE)    NUTS2, Badajoz/Cáceres)
                                                             |
                                                             v
                                     PostgreSQL 17 compartido (base "extremadura_en_datos")
@@ -120,6 +120,14 @@ tiene sus valores en el tiempo (`observacion`). Ver
 vistas `v_observacion` (todo unido, crudo) y `v_analisis` (naturaleza del
 dato + secreto excluido + normalización por población — ver §17) para
 consultar sin repetir los JOIN cada vez.
+
+**Ampliación NUTS2 europea y sector agropecuario (planificada 2026-09-15).**
+Añade nuevas fuentes a la capa de ingesta (Eurostat NUTS2, portal Agri-food
+DG AGRI, FAO, Banco Mundial, embalses del Guadiana/Tajo y lonjas regionales
+con descarga + extracción local/OCR) y concreta parte de la capa de análisis
+(Z-scores, índices compuestos, correlación con desfase). Plan, decisiones y
+**seguimiento de avances** en
+[`docs/ampliacion-nuts2-agro.md`](docs/ampliacion-nuts2-agro.md).
 
 **Sobre las dos piezas planeadas y aún no implementadas** (script de análisis
 y web): no ejecutar nada ni crear archivos para esto todavía sin retomarlo
@@ -198,6 +206,9 @@ conecta al puerto ya reservado 5432 de PostgreSQL compartido).
 | `INE_API_BASE` | URL base de la API del INE | No |
 | `INE_REQUEST_TIMEOUT` | Timeout HTTP en segundos | No |
 | `INE_REQUEST_DELAY_SECONDS` | Pausa entre peticiones al INE | No |
+| `EUROSTAT_API_BASE` | URL base de la API de Eurostat (2026-09-15) | No (default en `config.py`) |
+| `EUROSTAT_REQUEST_TIMEOUT` | Timeout HTTP en segundos para Eurostat | No (default 120) |
+| `EUROSTAT_REQUEST_DELAY_SECONDS` | Pausa entre peticiones a Eurostat | No (default 1) |
 
 Plantilla: `.env.example`
 
@@ -214,6 +225,10 @@ Plantilla: `.env.example`
 
 - API JSON del INE (Tempus3): `https://servicios.ine.es/wstempus/js/ES` —
   servicio público gratuito, sin autenticación, sin SLA garantizado.
+- API de difusión de Eurostat (JSON-stat 2.0, 2026-09-15):
+  `https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0` — pública,
+  sin autenticación, límite de 5M celdas por petición (ver
+  `docs/fuentes-europa-agro.md`).
 
 ---
 
@@ -241,7 +256,10 @@ pide los últimos periodos, es la que usa la tarea diaria):
 ```
 
 Ambas admiten `--solo <codigo>` para un único indicador (ver
-`indicadores.py`), p.ej. `--modo historico --solo ine_ipc_ccaa`.
+`indicadores.py`), p.ej. `--modo historico --solo ine_ipc_ccaa`, y
+`--fuente ine|eurostat` para una sola fuente. Carga histórica de Eurostat
+(fase 1 de la ampliación NUTS2) sin terminal: doble clic en
+`carga_eurostat.bat` (log en `_ejecucion_claude\eurostat.txt`).
 
 Para ver un resumen legible de la estructura del esquema y del volumen de
 datos cargado (totales, por territorio, por categoría, por periodicidad y
@@ -318,6 +336,58 @@ Destino: `F:\Archive\Backups\extremadura-en-datos\`
 
 ## 17. Observaciones relevantes
 
+- **🔴→✅ Tarea programada diaria rota del 2026-08-28 al 2026-09-16
+  (corregido).** `run_ingesta.ps1` moría en la primera línea de log por
+  `$ErrorActionPreference = 'Stop'` + stderr de Python en PowerShell 5.1; no
+  se ingirió nada en 19 días. Al corregirlo, la primera ingesta incremental
+  real destapó dos fallos en el calendario (fechas repetidas y falta de
+  `rollback`) y un formato de año de las tablas CRE; todo corregido y
+  verificado en producción (ingesta completa con código 0). También
+  corregido `v_analisis.naturaleza_dato_efectiva` (variaciones del INE mal
+  clasificadas como índice). **Recomendación:** comprobar de vez en cuando
+  `E:\Lab\logs\extremadura-en-datos\latest.log` o `carga_log`; para
+  reproducir la tarea a mano, `probar_tarea_diaria.bat`. Detalle en
+  CHANGELOG 2026-09-16 (2).
+- **✅ Fase 1 de la ampliación: Eurostat NUTS2 (implementada 2026-09-15,
+  en producción 2026-09-16: 327.403 observaciones, carga repetida dos veces
+  con mismos recuentos — idempotente; total en la base 1.485.844).** Fase 0 cerrada con estas decisiones del usuario: embalses y
+  extracción PDF/OCR aplazados; Lonja de Extremadura descartada (requiere
+  registro), los precios locales vendrán del Observatorio de Precios de la
+  Junta y del portal Agri-food de la Comisión Europea. Cambios:
+  - `sql/001_schema.sql`: fuente `eurostat`; `territorio.codigo_nuts` (las
+    CCAA españolas ya existentes reciben su código NUTS2, así INE y Eurostat
+    comparten territorio); niveles `nuts2` y `agregado` (UE-27);
+    `indicador.origen_actualizado`. Idempotente.
+  - Módulos nuevos `eurostat_client.py`, `eurostat_parse.py`,
+    `eurostat_ingest.py`. `ingest.py` reparte por `indicador.fuente` y admite
+    `--fuente`; tras un error inesperado hace `rollback` para no arrastrarlo
+    al siguiente indicador. `db.py`: indicador por fuente, alta automática de
+    países/NUTS2 europeos.
+  - `indicadores.py`: campos `fuente` y `eurostat_filtros`; 9 indicadores
+    Eurostat (PIB, VAB por ramas, paro, empleo, ocupados, I+D, población,
+    renta de hogares, cabaña ganadera).
+  - Tests `tests/test_eurostat_parse.py` con JSON real; prueba de integración
+    en PostgreSQL 16 de pruebas (esquema nuevo encima del de producción,
+    idempotencia de esquema y de carga, modo incremental simulado).
+  **Se activa sola** en la próxima tarea diaria (reaplica el esquema y carga
+  en incremental los últimos 6 años de Eurostat); para el histórico completo,
+  `carga_eurostat.bat`. **Hallazgo aparte:** `v_analisis` clasifica mal las
+  variaciones del IPC como `indice` (mira `observacion.tipo_dato`, que en el
+  INE es "Definitivo"/"Provisional") — pendiente de decidir si se corrige.
+  Seguimiento: `docs/ampliacion-nuts2-agro.md`.
+- **📝 Ampliación: comparativa NUTS2 europea y sector agropecuario
+  (2026-09-15, planificada, sin implementar).** El usuario aportó un
+  documento de investigación y se acordó el plan: fases 0 (verificación de
+  fuentes), 1 (Eurostat NUTS2, todas las regiones UE), 2 (embalses), 3
+  (precios: DG AGRI/FAO/Banco Mundial + lonjas con descarga diaria y
+  extracción local — CSV/XLSX/HTML/PDF con texto automatizados, OCR local
+  para escaneados, validación y cuarentena antes de cargar) y 4 (capa de
+  análisis: Z-scores/Min-Max, índices compuestos, correlación con desfase,
+  agua ↔ VAB agrario). La web queda fuera. Solo fuentes gratuitas/oficiales
+  (sin futuros MATIF/CBOT en tiempo real) y no se adopta la arquitectura
+  cloud del documento de origen. **Documento de seguimiento (estado por fase
+  y registro de avances, actualizar en cada paso):**
+  `docs/ampliacion-nuts2-agro.md`.
 - **2026-08-28 — modelo de datos ampliado a nivel de serie, y catálogo
   ampliado a 24 tablas.** El usuario aportó `Datos_Extremadura_Mensual.xlsx`
   con 21 tablas del INE (Precios, Industria y Empresa, Turismo, Vivienda,

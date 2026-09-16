@@ -1,5 +1,135 @@
 # CHANGELOG — Extremadura en Datos
 
+## 2026-09-16 (2)
+
+- **🔴→✅ La tarea programada diaria llevaba fallando TODOS los días desde el
+  2026-08-28 sin ingerir nada.** Descubierto al revisar por qué casi todos los
+  indicadores tenían `naturaleza_dato` vacío en producción: `carga_log` no
+  tenía ninguna carga entre el 28-ago y hoy, `schtasks` mostraba "Último
+  resultado: 1" y `E:\Lab\logs\extremadura-en-datos` estaba vacía.
+  Causa: `scripts/run_ingesta.ps1` usa `$ErrorActionPreference = 'Stop'`, y
+  Windows PowerShell 5.1 convierte cada línea que Python escribe en stderr
+  (todo el logging) en un error terminante (`NativeCommandError`): moría en
+  la primera línea de log. Corregido relajando a `Continue` solo durante la
+  llamada a Python y pasando cada línea a texto antes del log. Nuevo
+  `probar_tarea_diaria.bat` para lanzar exactamente lo mismo que la tarea
+  (salida en `_ejecucion_claude\run_ingesta.txt`).
+- **Al poder ejecutarse por fin la ingesta incremental real salieron tres
+  fallos más (nunca se había ejecutado de verdad en producción):**
+  - `db.upsert_fechas_calendario`: el INE repite fechas de publicación en la
+    misma respuesta → `CardinalityViolation` en 10 tablas (turismo, vivienda,
+    hipotecas, fincas, EPA). Ahora se deduplica por fecha.
+  - `calendario.refrescar_si_hace_falta`: la "red de seguridad" capturaba el
+    error pero dejaba la transacción abortada, y la ingesta de esa tabla
+    fallaba después (`InFailedSqlTransaction`). Ahora hace `rollback`.
+  - `parse.py`: las tablas CRE devuelven en incremental años a secas
+    (`"2022"`), que no se reconocían (5.180 avisos). Añadido ese formato.
+  Tests nuevos: `test_formato_nombreperiodo_anyo_sin_letra`,
+  `tests/test_calendario_db.py` (19/19 OK). Probado además contra PostgreSQL
+  de pruebas (fecha repetida y rollback tras error SQL).
+- **✅ Ingesta incremental completa en producción (`probar_tarea_diaria.bat`,
+  código de salida 0):** 11 tablas del INE con publicación pendiente
+  cargadas, 13 omitidas por calendario, población (tablas 2853/2852) cargada
+  por primera vez, los 9 indicadores de Eurostat omitidos correctamente por
+  no haber cambiado en origen.
+- **Corregido `v_analisis.naturaleza_dato_efectiva`:** ahora detecta
+  variaciones/tasas en el valor de cualquier dimensión de la serie (el nombre
+  de la dimensión varía por tabla: "Índices y Tasas", "Índice y tasas",
+  "Tipo de dato", "magnitud"), no solo en `observacion.tipo_dato` (que en el
+  INE es "Definitivo"/"Provisional"). Verificado en producción: en el IPC,
+  223.956 observaciones de variación pasan a `tasa` y 74.880 de índice
+  siguen como `indice`; lo mismo en IPI, IPV, ICN y CRE.
+- Verificado también en producción: `naturaleza_dato` sincronizado en los 26
+  indicadores del INE; `v_poblacion` devuelve datos (Extremadura 1.059.501
+  en 2021) y `valor_por_1000_habitantes` se calcula para los conteos.
+  **Límite detectado:** las tablas de población del INE solo llegan a 2021,
+  así que la normalización de años posteriores usa la población de 2021.
+- Nuevo `scripts/verificar_naturaleza.py` (+ `verificar_naturaleza.bat`):
+  resumen de naturaleza por indicador, población y normalización. Scripts de
+  diagnóstico puntuales de hoy movidos a `_to_delete/`.
+- Nota de rendimiento: consultas agregadas sobre toda `v_analisis` (1,5 M de
+  filas) tardan ~2 minutos → la capa de análisis (fase 4) no debe consultarla
+  entera en cada ejecución.
+
+## 2026-09-16
+
+- **✅ Fase 1 (Eurostat NUTS2) confirmada en producción.** `carga_eurostat.bat`
+  lanzado en el PC (Computer Use): esquema aplicado, 9/9 indicadores
+  cargados sin errores en ~1 minuto — **327.403 observaciones** (PIB 20.113,
+  VAB por ramas 100.714, paro 36.415, empleo 21.109, ocupados 50.906, I+D
+  53.593, población 9.106, renta hogares 12.082, ganadería 23.365). Repetido
+  a continuación: mismos recuentos (idempotente). Total en la base: 1.485.844
+  observaciones (INE sin cambios, 1.158.441).
+- Incidencia menor durante la ejecución: un doble clic mal situado lanzó
+  `exportar_analisis.bat` (solo lectura de la base; regeneró
+  `_ejecucion_claude/observaciones.csv` e `indicadores.csv`, carpeta de
+  trabajo excluida de Git). Sin efecto en los datos.
+
+## 2026-09-15 (3)
+
+- **Fase 0 cerrada** con decisiones del usuario: embalses y extracción de
+  PDF/OCR de la Lonja de Salamanca aplazados; Lonja de Extremadura
+  descartada (requiere registro) — los precios locales vendrán del
+  Observatorio de Precios de la Junta y del portal Agri-food de la Comisión.
+- **Fase 1: ingesta de Eurostat (comparativa NUTS2 europea).**
+  - Esquema: fuente `eurostat`, `territorio.codigo_nuts` (CCAA españolas
+    enlazadas a su NUTS2, Badajoz/Cáceres a su NUTS3), niveles `nuts2` y
+    `agregado` (UE-27), `indicador.origen_actualizado`.
+  - Nuevos `eurostat_client.py`, `eurostat_parse.py` (JSON-stat disperso,
+    flags, confidencial como secreto, selección de territorios UE-27) y
+    `eurostat_ingest.py` (histórico completo / incremental por fecha
+    `updated`, últimos 6 años).
+  - `ingest.py`: reparto por fuente, opción `--fuente`, `rollback` tras error
+    inesperado. `db.py`: indicador por fuente y alta automática de países y
+    regiones NUTS2. `parse.py`: campo opcional `territorio_nombre_origen`.
+    `config.py` / `.env.example`: variables `EUROSTAT_*` opcionales.
+  - `indicadores.py`: campos `fuente` y `eurostat_filtros`; 9 indicadores
+    Eurostat. Catálogo total: 35 indicadores (26 INE + 9 Eurostat).
+  - Tests: `tests/test_eurostat_parse.py` + `tests/fixtures/` (JSON real
+    capturado); 17/17 tests OK. Integración en PostgreSQL 16 de pruebas:
+    esquema aplicado dos veces sobre el esquema de producción con datos INE,
+    carga Eurostat idempotente, INE y Eurostat en el mismo territorio,
+    modo incremental simulado.
+  - `carga_eurostat.bat`: carga histórica de Eurostat + verificación con
+    doble clic. **Pendiente:** ejecutarla en producción.
+- **Hallazgo (sin corregir):** `v_analisis.naturaleza_dato_efectiva` no
+  detecta las series de variación del INE (mira `observacion.tipo_dato`, que
+  trae "Definitivo"/"Provisional"; el tipo real está en `serie.atributos`).
+
+## 2026-09-15 (2)
+
+- **Fase 0 de la ampliación NUTS2/agro: verificación de fuentes (sin cambios
+  de código ni de base de datos).** Llamadas reales desde el navegador del PC
+  de producción. Nuevo `docs/fuentes-europa-agro.md` con el detalle:
+  - Eurostat JSON-stat verificado (10 datasets, valores reales de ES43/ES/UE27);
+    `lfst_r_lfe2act` y `agr_r_animal` (citados en el documento de origen) dan
+    404 → sustituidos; límite de extracción de 5M celdas.
+  - Portal Agri-food DG AGRI verificado (`api.tech.ec.europa.eu/agrifood`):
+    porcino, vacuno, ovino, cereales y aceite (con mercado **Badajoz**),
+    leche y fertilizantes; precios como texto con coma/punto decimal
+    inconsistente.
+  - FAO (CSV) verificado; Pink Sheet y `BD-Embalses.zip` de MITECO
+    localizados (formato interno pendiente).
+  - Precios locales: Observatorio de Precios de la Junta de Extremadura
+    (CSV por provincia), Lonja de Salamanca (datos abiertos CC-BY, incluye
+    ibérico, solo últimas ~5 semanas), MAPA precios medios (XLSX). La Lonja
+    de Extremadura exige usuario registrado.
+  - `docs/ampliacion-nuts2-agro.md`: estado de fase 0 y registro de avances
+    actualizados.
+
+## 2026-09-15
+
+- **Documentado (solo documentación, nada implementado): plan de ampliación
+  con comparativa NUTS2 europea y sector agropecuario.** A partir del
+  documento de investigación aportado por el usuario se acordaron alcance
+  (fases 0–4, web fuera), comparación contra todas las NUTS2 de la UE,
+  fuentes de mercado solo gratuitas/oficiales, lonjas con descarga diaria y
+  extracción local (OCR para PDF escaneados) y comparativa europea también
+  en precios agrarios. Nuevo documento vivo de seguimiento
+  `docs/ampliacion-nuts2-agro.md` (decisiones, fuentes, diseño de lonjas,
+  cambios de modelo previstos, estado por fase y registro de avances).
+  `PROJECT.md` §4 y §17 y `README.md` enlazan a él.
+
 ## 2026-08-28 (10)
 
 - **Documentado (solo documentación, nada implementado): plan de arquitectura

@@ -1,7 +1,7 @@
 # Extremadura en Datos
 
 Backend que descarga indicadores regionales/provinciales de distintas fuentes
-públicas, los unifica en un esquema común y los guarda en PostgreSQL. Empieza
+públicas (INE y, desde 2026-09-15, Eurostat para la comparativa NUTS2 europea), los unifica en un esquema común y los guarda en PostgreSQL. Empieza
 por el INE (economía y mercado laboral, Extremadura/Badajoz/Cáceres).
 
 ---
@@ -62,6 +62,9 @@ formato de alguna tabla en el futuro:
 # Solo un indicador
 .venv\Scripts\python -m extremadura_datos.ingest --solo ine_ipc_ccaa
 
+# Solo una fuente (ine | eurostat), p.ej. carga histórica de Eurostat NUTS2
+.venv\Scripts\python -m extremadura_datos.ingest --modo historico --fuente eurostat
+
 # Resumen de estructura y volumen de datos cargado
 .venv\Scripts\python scripts\reporte_estructura.py
 ```
@@ -106,6 +109,8 @@ docs\                     Documentación técnica adicional (fuentes-ine.md)
 |---|---|
 | [PROJECT.md](PROJECT.md) | Ficha técnica completa: arquitectura, datos, puertos, backup, recuperación |
 | [CHANGELOG.md](CHANGELOG.md) | Historial de cambios |
+| [docs/fuentes-europa-agro.md](docs/fuentes-europa-agro.md) | Fuentes verificadas de la ampliación: Eurostat, DG AGRI, FAO, embalses, lonjas |
+| [docs/ampliacion-nuts2-agro.md](docs/ampliacion-nuts2-agro.md) | Plan y seguimiento de la ampliación NUTS2 europea + sector agropecuario (estado por fase, registro de avances) |
 | [docs/fuentes-ine.md](docs/fuentes-ine.md) | Tablas del INE usadas, enlaces, y el aviso de que el parseo no se ha probado contra la API real |
 
 Estándar del equipo: `C:\OfficeLab\PROJECT_STANDARD.md`

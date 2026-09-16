@@ -23,6 +23,12 @@ Uso:
     python -m extremadura_datos.ingest --solo ine_ipc_ccaa           # incremental, una fuente
     python -m extremadura_datos.ingest --modo historico --solo ine_ipc_ccaa   # histórico completo, una fuente
     python -m extremadura_datos.ingest --modo historico              # histórico completo, todas las fuentes
+    python -m extremadura_datos.ingest --modo historico --fuente eurostat     # solo los indicadores de Eurostat
+
+Fuentes (2026-09-15): cada indicador declara su `fuente` en indicadores.py.
+'ine' sigue el flujo descrito arriba (calendario del INE incluido);
+'eurostat' se delega en eurostat_ingest.py, que en modo incremental usa la
+fecha `updated` de Eurostat en vez de un calendario.
 """
 
 from __future__ import annotations
@@ -33,8 +39,9 @@ import logging
 import sys
 from datetime import datetime, timezone
 
-from . import calendario, db
+from . import calendario, db, eurostat_ingest
 from .config import Config
+from .eurostat_client import EurostatClient
 from .indicadores import INDICADORES
 from .ine_client import IneApiError, IneClient
 from .parse import parsear_tabla
@@ -110,6 +117,11 @@ def main() -> int:
             "disponible de la tabla — usar para la carga inicial de cada fuente."
         ) % NULT_POR_DEFECTO,
     )
+    parser.add_argument(
+        "--fuente",
+        choices=["ine", "eurostat"],
+        help="Ingerir solo los indicadores de esta fuente.",
+    )
     args = parser.parse_args()
     nult = None if args.modo == "historico" else NULT_POR_DEFECTO
 
@@ -117,8 +129,10 @@ def main() -> int:
     cfg.ensure_dirs()
 
     indicadores = [i for i in INDICADORES if i.codigo == args.solo] if args.solo else INDICADORES
+    if args.fuente:
+        indicadores = [i for i in indicadores if i.fuente == args.fuente]
     if not indicadores:
-        logger.error("No hay ningún indicador con código %r.", args.solo)
+        logger.error("No hay ningún indicador para --solo=%r --fuente=%r.", args.solo, args.fuente)
         return 1
 
     conn = db.connect(cfg.database_url)
@@ -126,10 +140,18 @@ def main() -> int:
     try:
         db.ensure_schema(conn)
         cliente = IneClient(cfg.ine_api_base, cfg.ine_request_timeout, cfg.ine_request_delay_seconds)
+        cliente_eurostat = EurostatClient(
+            cfg.eurostat_api_base, cfg.eurostat_request_timeout, cfg.eurostat_request_delay_seconds
+        )
         for indicador in indicadores:
             if not indicador.activo:
                 continue
             try:
+                if indicador.fuente == "eurostat":
+                    eurostat_ingest.ingerir_indicador(
+                        conn, cfg, cliente_eurostat, indicador, args.modo
+                    )
+                    continue
                 indicador_id = db.get_or_create_indicador(conn, indicador)
                 if args.modo == "incremental" and not calendario.debe_ingerir_hoy(
                     conn, cliente, indicador_id, indicador
@@ -144,6 +166,10 @@ def main() -> int:
                     calendario.marcar_procesado(conn, indicador_id)
             except Exception:  # noqa: BLE001 - se registra y se sigue con el resto
                 logger.exception("Error inesperado ingiriendo %s", indicador.codigo)
+                # Deja la conexión usable para el siguiente indicador (si el
+                # fallo ocurrió a mitad de una transacción, sin esto todas
+                # las consultas siguientes fallarían con "transaction aborted").
+                conn.rollback()
                 hubo_error = True
     finally:
         conn.close()

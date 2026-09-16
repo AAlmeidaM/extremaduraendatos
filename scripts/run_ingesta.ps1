@@ -19,9 +19,18 @@ $py = Join-Path $proyectoDir '.venv\Scripts\python.exe'
 
 Push-Location $proyectoDir
 try {
-    & $py -m extremadura_datos.ingest *>&1 | Tee-Object -FilePath $logFile
+    # CORREGIDO 2026-09-16: con $ErrorActionPreference = 'Stop', Windows
+    # PowerShell 5.1 convierte cada linea que Python escribe en stderr (todo el
+    # logging va a stderr) en un error terminante (NativeCommandError). La
+    # tarea programada moria en la primera linea de log, sin llegar a ingerir
+    # nada ni a copiar el log, y terminaba con codigo 1 cada dia desde el
+    # 2026-08-28. Durante la llamada a Python se relaja a 'Continue' y cada
+    # linea se pasa a texto plano antes de escribirla al log.
+    $ErrorActionPreference = 'Continue'
+    & $py -m extremadura_datos.ingest 2>&1 | ForEach-Object { "$_" } | Tee-Object -FilePath $logFile
     $codigoSalida = $LASTEXITCODE
 } finally {
+    $ErrorActionPreference = 'Stop'
     Pop-Location
 }
 
