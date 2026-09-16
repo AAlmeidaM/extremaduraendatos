@@ -177,6 +177,12 @@ Git; los logs salen en codificación de consola cp850).
 5. **Nombres de regiones europeas** en idioma original (Eurostat, p.ej.
    "Attiki"). Opcional: tabla de traducción si la web lo necesita.
 
+### 4.1b Web pública extremaduraendatos.com (decidida 2026-09-16)
+
+Diseño, condiciones de uso de las fuentes, avisos, datos que faltan y orden
+de trabajo en **`docs/web-extremaduraendatos.md`**. La fase 4 (análisis) se
+aborda ya orientada a los tres bloques de la web.
+
 ### 4.2 Fase 4 — Capa de análisis (siguiente fase grande)
 
 Estado: sin empezar. Diseño acordado solo a alto nivel (`PROJECT.md` §4 y
@@ -238,6 +244,7 @@ Restricciones conocidas para la fase 4:
 | `PROJECT.md` | Ficha técnica (estándar Office Lab), decisiones en §17 |
 | `CHANGELOG.md` | Historial detallado de cambios |
 | `docs/ESTADO-Y-SIGUIENTES-PASOS.md` | Este documento: foto actual y próximos pasos |
+| `docs/web-extremaduraendatos.md` | Web pública: diseño, licencias y avisos, plan de trabajo |
 | `docs/ampliacion-nuts2-agro.md` | Plan de la ampliación NUTS2 + agro: decisiones D1–D10, estado por fase, registro de avances, riesgos |
 | `docs/fuentes-europa-agro.md` | Fuentes verificadas de la ampliación (Eurostat, Agri-food, FAO, embalses, lonjas, Junta) y catálogos implementados (§7 Eurostat, §8 precios) |
 | `docs/fuentes-ine.md` | Tablas del INE, verificación y demografía (ECP) |

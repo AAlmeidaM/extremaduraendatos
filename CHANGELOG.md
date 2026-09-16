@@ -1,5 +1,18 @@
 # CHANGELOG — Extremadura en Datos
 
+## 2026-09-16 (7)
+
+- **Web pública: diseño y requisitos (solo documentación).** Nuevo
+  `docs/web-extremaduraendatos.md`: decisiones W1–W10 (dominio
+  extremaduraendatos.com, público general y prensa, página única por
+  bloques de color, textos descriptivos, cinta de últimos datos, mapas con
+  selector de indicador, estética tecnológica, PDF técnico, Vercel),
+  condiciones de uso de las 7 fuentes con su atribución literal (GISCO solo
+  no comercial; Observatorio de la Junta con aviso legal restrictivo →
+  pedir autorización antes de publicar sus datos), avisos obligatorios,
+  datos que faltan (afiliación, contornos NUTS2, revisiones) y orden de
+  trabajo en 9 pasos.
+
 ## 2026-09-16 (6)
 
 - **Documentado para retomar más adelante.** Nuevo
