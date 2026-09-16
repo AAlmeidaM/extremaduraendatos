@@ -74,7 +74,10 @@ def ingerir_indicador(
     indicador_id = db.get_or_create_indicador(conn, indicador)
 
     try:
-        datos = cliente.fetch_tabla(indicador.tabla_id_externo, tip="AM", nult=nult)
+        datos = cliente.fetch_tabla(
+            indicador.tabla_id_externo, tip="AM", nult=nult,
+            extra_params=list(indicador.ine_filtros) or None,
+        )
     except IneApiError as exc:
         logger.error("Fallo al descargar %s: %s", indicador.codigo, exc)
         db.registrar_carga(conn, indicador_id, "error", str(exc))

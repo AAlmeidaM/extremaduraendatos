@@ -56,17 +56,22 @@ def main() -> int:
         print("\nValores de 'Tipo de dato' en el IPC:", [r[0] for r in cur.fetchall()])
         cur.execute(
             """
-            SELECT t.nombre, vp.anyo, vp.poblacion
+            SELECT t.nombre, vp.periodo_fecha, vp.poblacion, vp.prioridad, vp.indicador
             FROM v_poblacion vp JOIN territorio t ON t.id = vp.territorio_id
             WHERE t.nombre IN ('Extremadura', 'Badajoz', 'Cáceres', 'España')
-            ORDER BY vp.anyo DESC, t.nombre LIMIT 8
+              AND vp.periodo_fecha >= DATE '2024-10-01'
+            ORDER BY t.nombre, vp.periodo_fecha DESC, vp.prioridad
             """
         )
-        print("\nv_poblacion (ultimos):", cur.fetchall())
+        print("\nv_poblacion (desde 2024-10):")
+        for fila in cur.fetchall():
+            print("  ", fila)
         cur.execute(
             """
-            SELECT indicador, count(*) FILTER (WHERE valor_por_1000_habitantes IS NOT NULL), count(*)
+            SELECT indicador, count(*) FILTER (WHERE valor_por_1000_habitantes IS NOT NULL), count(*),
+                   max(poblacion_fecha_referencia), array_agg(DISTINCT poblacion_fuente)
             FROM v_analisis WHERE naturaleza_dato_efectiva = 'conteo' AND fuente = 'ine'
+              AND territorio = 'Extremadura'
             GROUP BY 1 ORDER BY 1
             """
         )

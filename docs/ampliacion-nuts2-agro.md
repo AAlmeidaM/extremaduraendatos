@@ -169,6 +169,9 @@ Leyenda: ⬜ pendiente · 🔄 en curso · ✅ hecho · ⛔ bloqueado · ❌ des
 Una línea por avance, la más reciente arriba. Formato:
 `AAAA-MM-DD — Fase N — qué se hizo — resultado / enlace a CHANGELOG`.
 
+- 2026-09-16 — Mantenimiento — Población: sustituido el Padrón congelado
+  (2021) por la ECP trimestral del INE, cargada en producción (hasta
+  1-jul-2026) y conectada a `v_poblacion`/`v_analisis`.
 - 2026-09-16 — Mantenimiento — Descubierto y corregido que la tarea diaria
   fallaba desde el 28-ago (PowerShell); corregidos también el calendario del
   INE, el formato de año CRE y `v_analisis`. Ingesta incremental real OK.
@@ -207,9 +210,13 @@ Una línea por avance, la más reciente arriba. Formato:
   NUTS usada y documentarla.
 - **Condiciones de uso** de cada web raspada → revisar en fase 0.
 - ~~Bug previo en `v_analisis`~~ **corregido 2026-09-16** (ver CHANGELOG).
-- **Población del INE solo hasta 2021:** para normalizar por habitante en la
-  fase 4 conviene usar `eurostat_poblacion_nuts2` (hasta 2025).
-- **Rendimiento:** agregar toda `v_analisis` tarda ~2 min; la fase 4 debe
+- **Población de referencia (resuelto 2026-09-16):** las tablas del Padrón
+  (2853/2852) están congeladas por el INE desde 2021; se sustituyen por la
+  Estadística Continua de Población (ECP), trimestral, actualizada cada
+  trimestre por calendario (ver CHANGELOG 2026-09-16 (3)). `v_poblacion`
+  combina ECP > Eurostat > Padrón.
+- **Rendimiento:** agregar toda `v_analisis` tarda ~6 min tras añadir la
+  población trimestral; la fase 4 debe
   trabajar por indicador/periodo, no sobre la vista entera.
 - **Nombres de regiones europeas en inglés/idioma original** (etiqueta de
   Eurostat, p.ej. "Attiki", "Ile de France"); los 27 países sí en castellano.

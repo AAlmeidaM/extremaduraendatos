@@ -174,8 +174,10 @@ class ObservacionParseada:
 def _periodo_codigo(periodicidad: str, fecha: date, periodo_ine: str | None) -> str:
     """Prefiere el código de periodo que da el propio INE (`T3_Periodo`, p.ej.
     "M12", "T4") y solo lo deriva de la fecha si no viene."""
-    if periodo_ine:
-        return str(periodo_ine)
+    # Solo se acepta si tiene forma de código ("M12", "T4", "A"...). La ECP
+    # (2026-09-16) trae textos como "1 de julio de" en T3_Periodo.
+    if periodo_ine and re.fullmatch(r"[A-Z]\d{0,2}", str(periodo_ine).strip()):
+        return str(periodo_ine).strip()
     if periodicidad == "anual":
         return "A"
     if periodicidad == "trimestral":

@@ -328,20 +328,41 @@ END $$;
 -- acceso de red desde este entorno (pendiente de confirmar en la primera
 -- ingesta real; si no calzase, esta vista devolvería 0 filas sin romper
 -- nada más — revisar entonces s.atributos tal cual llega).
+-- Ampliada 2026-09-16: la población de referencia es trimestral y sale de
+-- varias fuentes, con prioridad (menor = mejor) para la misma fecha:
+--   1 ECP del INE, dato definitivo      (ine_ecp_poblacion_*_historico)
+--   2 ECP del INE, dato provisional     (ine_ecp_poblacion_*)
+--   3 Eurostat demo_r_d2jan (1 de enero) (regiones europeas; España coincide)
+--   4 Padrón INE 1996-2021 (congelado)  (ine_poblacion_ccaa/provincia)
+-- Columnas nuevas al final (periodo_fecha, prioridad, indicador) para poder
+-- reemplazar la vista sin romper v_analisis.
 CREATE OR REPLACE VIEW v_poblacion AS
 SELECT
     s.territorio_id,
     o.anyo,
-    o.valor AS poblacion
+    o.valor AS poblacion,
+    o.periodo_fecha,
+    CASE
+        WHEN i.codigo LIKE 'ine_ecp_poblacion_%' AND o.tipo_dato ILIKE 'definitivo%' THEN 1
+        WHEN i.codigo LIKE 'ine_ecp_poblacion_%' THEN 2
+        WHEN i.codigo = 'eurostat_poblacion_nuts2' THEN 3
+        ELSE 4
+    END AS prioridad,
+    i.codigo AS indicador
 FROM observacion o
 JOIN serie s      ON s.id = o.serie_id
 JOIN indicador i  ON i.id = s.indicador_id
-WHERE i.codigo IN ('ine_poblacion_ccaa', 'ine_poblacion_provincia')
+WHERE i.codigo IN ('ine_poblacion_ccaa', 'ine_poblacion_provincia',
+                   'ine_ecp_poblacion_ccaa_historico', 'ine_ecp_poblacion_ccaa',
+                   'ine_ecp_poblacion_provincia_historico', 'ine_ecp_poblacion_provincia',
+                   'eurostat_poblacion_nuts2')
   AND NOT o.secreto
+  AND o.valor IS NOT NULL
   AND (
         s.atributos = '{}'::jsonb
         OR s.atributos->'Sexo'->>'nombre' ILIKE 'total%'
         OR s.atributos->'Sexo'->>'nombre' ILIKE 'ambos%'
+        OR s.atributos->'sex'->>'codigo' = 'T'
       );
 
 -- Vista final de análisis: como v_observacion, pero (a) excluye el secreto
@@ -393,7 +414,7 @@ SELECT
     p.anyo              AS poblacion_anyo_referencia,
     p.poblacion,
     CASE
-        WHEN i.codigo NOT IN ('ine_poblacion_ccaa', 'ine_poblacion_provincia')
+        WHEN i.categoria <> 'demografia'
              AND (CASE WHEN o.tipo_dato ILIKE '%variaci%' OR o.tipo_dato ILIKE '%tasa%'
                          OR EXISTS (
                                SELECT 1 FROM jsonb_each(s.atributos) AS dim(clave, valor)
@@ -402,17 +423,21 @@ SELECT
                        THEN 'tasa' ELSE i.naturaleza_dato END) = 'conteo'
              AND p.poblacion IS NOT NULL AND p.poblacion <> 0
         THEN round((o.valor / p.poblacion) * 1000, 4)
-    END                 AS valor_por_1000_habitantes
+    END                 AS valor_por_1000_habitantes,
+    p.periodo_fecha     AS poblacion_fecha_referencia,
+    p.indicador         AS poblacion_fuente
 FROM observacion o
 JOIN serie s      ON s.id = o.serie_id
 JOIN indicador i  ON i.id = s.indicador_id
 JOIN fuente f     ON f.id = i.fuente_id
 JOIN territorio t ON t.id = s.territorio_id
+-- 2026-09-16: la población más reciente con fecha <= la del periodo de la
+-- observación (antes: <= año), prefiriendo la fuente de mejor prioridad.
 LEFT JOIN LATERAL (
-    SELECT vp.anyo, vp.poblacion
+    SELECT vp.anyo, vp.poblacion, vp.periodo_fecha, vp.indicador
     FROM v_poblacion vp
-    WHERE vp.territorio_id = t.id AND vp.anyo <= o.anyo
-    ORDER BY vp.anyo DESC
+    WHERE vp.territorio_id = t.id AND vp.periodo_fecha <= o.periodo_fecha
+    ORDER BY vp.periodo_fecha DESC, vp.prioridad
     LIMIT 1
 ) p ON TRUE
 WHERE NOT o.secreto;

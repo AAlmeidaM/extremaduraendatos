@@ -49,7 +49,7 @@ class IneClient:
         tip: str = "AM",
         nult: int | None = None,
         det: int | None = None,
-        extra_params: dict[str, Any] | None = None,
+        extra_params: dict[str, Any] | list[tuple[str, Any]] | tuple | None = None,
     ) -> Any:
         """Descarga los datos de una tabla completa (DATOS_TABLA), en una sola petición.
 
@@ -75,13 +75,16 @@ class IneClient:
         nunca truncada por el propio INE — por eso ahora es una única
         petición sin bucle.
         """
-        params: dict[str, Any] = {"tip": tip}
+        # Lista de pares (no dict): el filtro `tv=VARIABLE:VALOR` del INE se
+        # repite para pedir varios valores (2026-09-16, tablas de la ECP).
+        params: list[tuple[str, Any]] = [("tip", tip)]
         if nult is not None:
-            params["nult"] = nult
+            params.append(("nult", nult))
         if det is not None:
-            params["det"] = det
+            params.append(("det", det))
         if extra_params:
-            params.update(extra_params)
+            items = extra_params.items() if isinstance(extra_params, dict) else extra_params
+            params.extend(items)
 
         url = f"{self.base_url}/DATOS_TABLA/{tabla_id}"
         logger.debug("GET %s params=%s", url, params)

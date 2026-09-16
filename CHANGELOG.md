@@ -1,5 +1,46 @@
 # CHANGELOG — Extremadura en Datos
 
+## 2026-09-16 (3)
+
+- **Población de referencia: del Padrón congelado (2021) a la Estadística
+  Continua de Población (ECP) trimestral.** Investigado a petición del
+  usuario: las tablas 2853/2852 (Padrón, operación DPOP) no se actualizan
+  desde dic-2021; la población por CCAA/provincia se publica ahora en la ECP
+  (operación 450). Decisión del usuario: usar la trimestral y actualizarla
+  cada trimestre, solo como base para normalizar el resto de variables.
+  - `indicadores.py`: 4 indicadores nuevos (el INE parte cada nivel en
+    tabla histórica definitiva + tabla de trimestres recientes provisional):
+    `ine_ecp_poblacion_ccaa_historico` (56940), `ine_ecp_poblacion_ccaa`
+    (59238), `ine_ecp_poblacion_provincia_historico` (56945) y
+    `ine_ecp_poblacion_provincia` (59589). Calendario INE operación 450 /
+    publicación 610 → la tarea diaria solo los descarga al publicarse un
+    trimestre. `ine_poblacion_ccaa/provincia` pasan a `activo=False` (sus
+    datos 1996–2021 se conservan). Campo nuevo `Indicador.ine_filtros`
+    (`tv=356:15668` = "Todas las edades"; en provincias además
+    `tv=115:7`/`115:11` = Badajoz/Cáceres), imprescindible porque sin filtro
+    las tablas pesan 5–13 MB y la histórica provincial el INE no la sirve.
+  - `ine_client.fetch_tabla`: parámetros extra como lista de pares (el `tv`
+    se repite). `parse.py`: `T3_Periodo` solo se usa si tiene forma de código
+    (la ECP trae "1 de julio de").
+  - `sql/001_schema.sql`: `v_poblacion` trimestral con prioridad por fuente
+    (ECP definitivo > ECP provisional > Eurostat > Padrón) y columnas nuevas
+    `periodo_fecha`, `prioridad`, `indicador`; `v_analisis` toma la
+    población más reciente con fecha ≤ la del periodo de la observación
+    (antes ≤ año) y añade `poblacion_fecha_referencia` y `poblacion_fuente`;
+    no normaliza ningún indicador de categoría `demografia`.
+  - Probado en PostgreSQL de pruebas (estructura real de la ECP, definitivo
+    preferido sobre provisional en la misma fecha) y **cargado en
+    producción** (`carga_poblacion_ecp.bat`): 7.020 + 360 filas CCAA, 702 +
+    36 provinciales (20 territorios / 2 provincias × 3 sexos × 117 y 6
+    trimestres). Verificado: Extremadura 1.055.849 (1-jul-2026, provisional),
+    1.053.345 (1-ene-2025, definitivo, igual que Eurostat); Badajoz 667.584;
+    Cáceres 388.265; España 49.801.559. Los conteos de Extremadura ya se
+    normalizan con población de 2026 (antes con la de 2021).
+- **Rendimiento (pendiente):** agregar sobre toda `v_analisis` tarda ahora
+  ~6 min (el cruce con la población se calcula fila a fila). No afecta a la
+  ingesta; conviene resolverlo antes de la fase 4 (p.ej. vista materializada
+  de población refrescada tras cada ingesta).
+
 ## 2026-09-16 (2)
 
 - **🔴→✅ La tarea programada diaria llevaba fallando TODOS los días desde el

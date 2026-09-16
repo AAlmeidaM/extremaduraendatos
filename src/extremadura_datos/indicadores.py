@@ -109,6 +109,11 @@ class Indicador:
     # límite de 5M celdas de Eurostat (HTTP 413) — ver
     # docs/fuentes-europa-agro.md §1.
     eurostat_filtros: tuple[tuple[str, tuple[str, ...]], ...] = ()
+    # ine_filtros (2026-09-16): parámetros extra para DATOS_TABLA del INE, como
+    # pares ("tv", "VARIABLE:VALOR"). Necesario en tablas enormes que el INE
+    # no sirve enteras ("restricciones de volumen"), p.ej. las de la ECP con
+    # edad simple: se piden solo con "Todas las edades".
+    ine_filtros: tuple[tuple[str, str], ...] = ()
 
 
 INDICADORES: list[Indicador] = [
@@ -451,6 +456,10 @@ INDICADORES: list[Indicador] = [
         periodicidad="anual",
         filtro_territorio=_TODAS_CCAA,
         naturaleza_dato="conteo",
+        # Desactivada 2026-09-16: el INE congeló esta tabla (Padrón, operación
+        # DPOP) en 2021. Sus datos 1996-2021 se conservan en la base; la
+        # población actual viene de la ECP (indicadores ine_ecp_poblacion_*).
+        activo=False,
     ),
     Indicador(
         codigo="ine_poblacion_provincia",
@@ -461,6 +470,74 @@ INDICADORES: list[Indicador] = [
         periodicidad="anual",
         filtro_territorio=_PROVINCIA,
         naturaleza_dato="conteo",
+        activo=False,  # congelada por el INE en 2021, ver ine_poblacion_ccaa
+    ),
+    # --- Población: Estadística Continua de Población (ECP), 2026-09-16 ------
+    # Sustituye a las tablas del Padrón congeladas (2853/2852). Trimestral
+    # (1 de enero, abril, julio y octubre). El INE la reparte en dos tablas por
+    # nivel: una histórica con dato definitivo (1971 → último 1 de enero
+    # consolidado) y otra con los trimestres recientes provisionales. Se
+    # cargan las dos; v_poblacion prefiere el definitivo si ambos coinciden en
+    # fecha. Se piden solo con "Todas las edades" (tv=356:15668): sin ese
+    # filtro son 5-13 MB por la edad simple, y la histórica provincial ni se
+    # sirve. Calendario: operación 450 / publicación 610 (verificado en
+    # SERIES_TABLA), así que la ingesta diaria solo las descarga cuando el
+    # INE publica un trimestre nuevo. Verificado contra la API real:
+    # Extremadura 1.053.345 a 1-ene-2025 (igual que Eurostat), 1.055.849 a
+    # 1-jul-2026. Solo se usan para normalizar el resto de variables.
+    Indicador(
+        codigo="ine_ecp_poblacion_ccaa_historico",
+        tabla_id_externo="56940",
+        nombre="Población residente por fecha y sexo, CCAA (ECP, definitivo desde 1971)",
+        categoria="demografia",
+        nivel_territorial="ccaa",
+        periodicidad="trimestral",
+        filtro_territorio=_TODAS_CCAA,
+        ine_operacion_id=450,
+        ine_publicacion_id=610,
+        naturaleza_dato="conteo",
+        ine_filtros=(("tv", "356:15668"),),
+    ),
+    Indicador(
+        codigo="ine_ecp_poblacion_ccaa",
+        tabla_id_externo="59238",
+        nombre="Población residente por fecha y sexo, CCAA (ECP, trimestres recientes)",
+        categoria="demografia",
+        nivel_territorial="ccaa",
+        periodicidad="trimestral",
+        filtro_territorio=_TODAS_CCAA,
+        ine_operacion_id=450,
+        ine_publicacion_id=610,
+        naturaleza_dato="conteo",
+        ine_filtros=(("tv", "356:15668"),),
+    ),
+    Indicador(
+        codigo="ine_ecp_poblacion_provincia_historico",
+        tabla_id_externo="56945",
+        nombre="Población residente por fecha y sexo, Badajoz y Cáceres (ECP, definitivo desde 1971)",
+        categoria="demografia",
+        nivel_territorial="provincia",
+        periodicidad="trimestral",
+        filtro_territorio=_PROVINCIA,
+        ine_operacion_id=450,
+        ine_publicacion_id=610,
+        naturaleza_dato="conteo",
+        # 115:7 = Badajoz, 115:11 = Cáceres: la tabla provincial histórica
+        # completa da "restricciones de volumen" aunque se filtre la edad.
+        ine_filtros=(("tv", "356:15668"), ("tv", "115:7"), ("tv", "115:11")),
+    ),
+    Indicador(
+        codigo="ine_ecp_poblacion_provincia",
+        tabla_id_externo="59589",
+        nombre="Población residente por fecha y sexo, Badajoz y Cáceres (ECP, trimestres recientes)",
+        categoria="demografia",
+        nivel_territorial="provincia",
+        periodicidad="trimestral",
+        filtro_territorio=_PROVINCIA,
+        ine_operacion_id=450,
+        ine_publicacion_id=610,
+        naturaleza_dato="conteo",
+        ine_filtros=(("tv", "356:15668"), ("tv", "115:7"), ("tv", "115:11")),
     ),
     # =====================================================================
     # --- Eurostat: comparativa NUTS2 europea (2026-09-15) -----------------

@@ -69,6 +69,16 @@ consultar todo ya unido.
 | `ine_tiempo_trabajo_ccaa` | [6063](https://www.ine.es/jaxiT3/Tabla.htm?t=6063) | Tiempo de trabajo por trabajador y mes, CCAA, tipo de jornada, sectores de actividad | CCAA | Trimestral |
 | `ine_epa_paro_provincia` | [3996](https://www.ine.es/jaxiT3/Tabla.htm?t=3996) | Tasas de actividad, paro y empleo por provincia y sexo (EPA) | Provincia | Trimestral |
 
+### Demografía (población de referencia, 2026-09-16)
+
+| Código interno | Tabla INE | Nombre | Nivel | Periodicidad |
+|---|---|---|---|---|
+| `ine_ecp_poblacion_ccaa_historico` | [56940](https://www.ine.es/jaxiT3/Tabla.htm?t=56940) | Población residente por fecha y sexo (ECP, definitivo desde 1971) — filtro `tv=356:15668` | CCAA + nacional | Trimestral |
+| `ine_ecp_poblacion_ccaa` | [59238](https://www.ine.es/jaxiT3/Tabla.htm?t=59238) | Población residente por fecha y sexo (ECP, trimestres recientes provisionales) — `tv=356:15668` | CCAA + nacional | Trimestral |
+| `ine_ecp_poblacion_provincia_historico` | [56945](https://www.ine.es/jaxiT3/Tabla.htm?t=56945) | Ídem por provincia — `tv=356:15668&tv=115:7&tv=115:11` (sin filtro de provincia el INE no la sirve) | Provincia | Trimestral |
+| `ine_ecp_poblacion_provincia` | [59589](https://www.ine.es/jaxiT3/Tabla.htm?t=59589) | Ídem, trimestres recientes | Provincia | Trimestral |
+| `ine_poblacion_ccaa` / `ine_poblacion_provincia` | 2853 / 2852 | Padrón (DPOP) — **inactivas: congeladas por el INE en 2021** | CCAA / Provincia | Anual |
+
 ### Mercado laboral y Economía (ya existían, no vienen del Excel)
 
 | Código interno | Tabla INE | Nombre | Nivel | Periodicidad |
