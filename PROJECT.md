@@ -336,6 +336,12 @@ Destino: `F:\Archive\Backups\extremadura-en-datos\`
 
 ## 17. Observaciones relevantes
 
+- **✅ Fase 3 de la ampliación: precios agrarios (2026-09-16).** Portal
+  Agri-food de la Comisión Europea (7 indicadores, 2010→, España vs UE y
+  mercados de Badajoz), índice FAO (1990→) y Observatorio de Precios de la
+  Junta (23 productos, Badajoz/Cáceres, 2023→), integrados en la tarea
+  diaria. Pendiente el Banco Mundial (XLSX). Detalle en CHANGELOG
+  2026-09-16 (5) y `docs/fuentes-europa-agro.md` §8.
 - **✅ Población de referencia trimestral (2026-09-16).** El Padrón por
   CCAA/provincia (tablas 2853/2852) está congelado por el INE desde 2021; la
   población se toma ahora de la Estadística Continua de Población (ECP,

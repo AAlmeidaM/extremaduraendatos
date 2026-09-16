@@ -114,6 +114,9 @@ class Indicador:
     # no sirve enteras ("restricciones de volumen"), p.ej. las de la ECP con
     # edad simple: se piden solo con "Todas las edades".
     ine_filtros: tuple[tuple[str, str], ...] = ()
+    # parametros_api (2026-09-16, fase 3): parámetros fijos de consulta para
+    # fuentes con API propia (p.ej. memberStateCodes del portal Agri-food).
+    parametros_api: tuple[tuple[str, str], ...] = ()
 
 
 INDICADORES: list[Indicador] = [
@@ -666,6 +669,111 @@ INDICADORES: list[Indicador] = [
             ("unit", ("LSU", "HD")),
         ),
     ),
+    # =====================================================================
+    # --- Fase 3: precios agrarios (2026-09-16) ----------------------------
+    # =====================================================================
+    # Ver docs/ampliacion-nuts2-agro.md (fase 3) y docs/fuentes-europa-agro.md.
+    # Portal Agri-food de la Comisión Europea (DG AGRI): precios por Estado
+    # miembro + media UE desde 2010 (agrifood.py). Mercados de Badajoz/Cáceres
+    # van a su provincia. Todos los Estados miembros salvo en vacuno, que
+    # tiene ~730 series por año y se limita a España, los principales
+    # productores y la media UE.
+    Indicador(
+        codigo="agrifood_porcino",
+        tabla_id_externo="pigmeat/prices",
+        nombre="Precio de la canal de porcino (clases S, E, R) y lechón por Estado miembro",
+        categoria="precios_agrarios",
+        nivel_territorial="pais",
+        periodicidad="semanal",
+        naturaleza_dato="monetario",
+        fuente="agrifood",
+    ),
+    Indicador(
+        codigo="agrifood_vacuno",
+        tabla_id_externo="beef/prices",
+        nombre="Precio de la canal de vacuno por categoría y clasificación",
+        categoria="precios_agrarios",
+        nivel_territorial="pais",
+        periodicidad="semanal",
+        naturaleza_dato="monetario",
+        fuente="agrifood",
+        parametros_api=(("memberStateCodes", "ES,PT,FR,IT,DE,IE,NL,PL,EU"),),
+    ),
+    Indicador(
+        codigo="agrifood_ovino",
+        tabla_id_externo="sheepAndGoat/prices",
+        nombre="Precio del cordero pesado y ligero por Estado miembro",
+        categoria="precios_agrarios",
+        nivel_territorial="pais",
+        periodicidad="semanal",
+        naturaleza_dato="monetario",
+        fuente="agrifood",
+    ),
+    Indicador(
+        codigo="agrifood_cereales",
+        tabla_id_externo="cereal/prices",
+        nombre="Precios de cereales por mercado y fase de comercialización",
+        categoria="precios_agrarios",
+        nivel_territorial="pais",
+        periodicidad="semanal",
+        naturaleza_dato="monetario",
+        fuente="agrifood",
+    ),
+    Indicador(
+        codigo="agrifood_aceite",
+        tabla_id_externo="oliveOil/prices",
+        nombre="Precios del aceite de oliva por mercado y categoría",
+        categoria="precios_agrarios",
+        nivel_territorial="pais",
+        periodicidad="semanal",
+        naturaleza_dato="monetario",
+        fuente="agrifood",
+    ),
+    Indicador(
+        codigo="agrifood_leche",
+        tabla_id_externo="rawMilk/prices",
+        nombre="Precio de la leche cruda de vaca por Estado miembro",
+        categoria="precios_agrarios",
+        nivel_territorial="pais",
+        periodicidad="mensual",
+        naturaleza_dato="monetario",
+        fuente="agrifood",
+    ),
+    Indicador(
+        codigo="agrifood_fertilizantes",
+        tabla_id_externo="fertiliser/prices",
+        nombre="Precios medios de fertilizantes (N, P, K) en la UE",
+        categoria="precios_agrarios",
+        nivel_territorial="agregado",
+        periodicidad="mensual",
+        naturaleza_dato="monetario",
+        fuente="agrifood",
+    ),
+    # FAO: índice mundial de precios de los alimentos (fao.py).
+    Indicador(
+        codigo="fao_indice_precios_alimentos",
+        tabla_id_externo="food_price_indices_data",
+        nombre="Índice FAO de precios de los alimentos (general, carne, lácteos, cereales, aceites, azúcar)",
+        categoria="precios_agrarios",
+        nivel_territorial="agregado",
+        periodicidad="mensual",
+        naturaleza_dato="indice",
+        fuente="fao",
+    ),
+    # Observatorio de Precios y Mercados de la Junta de Extremadura: precios
+    # agrícolas semanales en origen por provincia (observatorio_junta.py).
+    # Descarga lenta (ficha de ~500 KB por producto): en incremental se
+    # descarga como mucho una vez por semana.
+    Indicador(
+        codigo="junta_precios_agricolas",
+        tabla_id_externo="observatorio_precios_agricultura",
+        nombre="Precios agrícolas semanales en origen, Badajoz y Cáceres (Observatorio de Precios de la Junta)",
+        categoria="precios_agrarios",
+        nivel_territorial="provincia",
+        periodicidad="semanal",
+        naturaleza_dato="monetario",
+        fuente="junta_observatorio",
+    ),
 ]
 
 
@@ -678,7 +786,7 @@ def _validar_catalogo() -> None:
         raise ValueError(f"Códigos de indicador duplicados en indicadores.py: {duplicados_codigo}")
     if duplicados_tabla:
         raise ValueError(f"Tablas duplicadas (fuente, tabla) en indicadores.py: {duplicados_tabla}")
-    fuentes_validas = {"ine", "eurostat"}
+    fuentes_validas = {"ine", "eurostat", "agrifood", "fao", "junta_observatorio"}
     desconocidas = {i.fuente for i in INDICADORES} - fuentes_validas
     if desconocidas:
         raise ValueError(f"Fuentes desconocidas en indicadores.py: {desconocidas}")

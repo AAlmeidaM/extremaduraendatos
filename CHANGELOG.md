@@ -1,5 +1,41 @@
 # CHANGELOG — Extremadura en Datos
 
+## 2026-09-16 (5)
+
+- **Fase 3: precios agrarios en producción.** Tres fuentes nuevas:
+  - `agrifood.py` — portal Agri-food de la Comisión Europea (DG AGRI), 7
+    indicadores semanales/mensuales desde 2010: porcino, vacuno (España,
+    principales productores y UE), ovino, cereales, aceite, leche,
+    fertilizantes. Reintentos ante HTTP 429, "sin resultados" (404) no es
+    error, precios en texto con decimal inconsistente, mercados de
+    Badajoz/Cáceres a su provincia.
+  - `fao.py` — índice FAO de precios de los alimentos (mensual, 1990→).
+    Localiza el enlace del CSV en la página porque su URL cambia en cada
+    publicación.
+  - `observatorio_junta.py` — Observatorio de Precios y Mercados de la Junta
+    de Extremadura: 23 productos agrícolas semanales por provincia. Sin API:
+    sesión + formulario JSF + cambio de campaña por AJAX + exportación CSV.
+    Muy lento (~45 s por producto) → en incremental, una vez por semana.
+  - Comunes: `precios_util.py`; `Indicador.parametros_api`; periodicidad
+    `semanal` (`S` + semana ISO); `db.upsert_observaciones` deduplica dentro
+    del lote; esquema con las 3 fuentes, territorio `Mundo` y nivel
+    `agregado` para indicadores; `ingest.py --fuente
+    agrifood|fao|junta_observatorio`.
+  - Tests: `tests/test_precios_agrarios.py` con muestras reales (28/28 OK) y
+    prueba de integración en PostgreSQL (idempotencia, deduplicación,
+    territorios, puerta semanal de la Junta).
+  - **Carga histórica real** (`carga_precios.bat`, `carga_junta.bat`):
+    548.731 observaciones de Agri-food, 2.640 de la FAO y 1.246 de la Junta;
+    total en la base 2.048.497. Verificación con
+    `scripts/verificar_precios.py` (+ `.bat`): porcino clase S España 178,08 €/100 kg
+    vs UE 172,88 (semana del 31-ago-2026); aceite y maíz con mercado de
+    Badajoz; índice FAO 133,3 (ago-2026).
+  - **Fallo encontrado en la carga real y corregido:** en la Junta, un
+    producto sin campaña 2023 (13 de 23) se descartaba entero; ahora se salta
+    solo esa campaña. Relanzada la carga de la Junta: 0 errores.
+  - **Pendiente:** Banco Mundial (XLSX, requiere instalar `openpyxl`) y
+    reglas de plausibilidad de precios.
+
 ## 2026-09-16 (4)
 
 - **Rendimiento de `v_analisis` resuelto: de ~6,5 min a ~20 s** (resumen

@@ -12,7 +12,7 @@
 > Agropecuario de Extremadura"*.
 
 **Creado:** 2026-09-15 · **Última actualización:** 2026-09-15 ·
-**Estado global:** ✅ Fase 1 (Eurostat) en producción (2026-09-16). Siguiente: fase 3 (precios agrarios). Fase 2 aplazada.
+**Estado global:** ✅ Fases 1 y 3 en producción (2026-09-16; en la 3 falta el Banco Mundial). Fase 2 aplazada. Siguiente: fase 4 (análisis).
 
 ---
 
@@ -143,15 +143,15 @@ Leyenda: ⬜ pendiente · 🔄 en curso · ✅ hecho · ⛔ bloqueado · ❌ des
 
 | Tarea | Estado | Notas |
 |---|---|---|
-| DG AGRI: cliente + catálogo (España y resto UE) | ⬜ | |
-| FAO y Banco Mundial | ⬜ | |
-| Observatorio de Precios Junta de Extremadura (CSV por provincia) | ⬜ | Sustituye a las lonjas (D10) |
+| DG AGRI: cliente + catálogo (España y resto UE) | ✅ | `agrifood.py`, 7 indicadores (porcino, vacuno, ovino, cereales, aceite, leche, fertilizantes) desde 2010; mercados de Badajoz a la provincia. 548.731 obs en producción (2026-09-16) |
+| FAO y Banco Mundial | 🔄 | FAO ✅ (`fao.py`, 2.640 obs 1990–ago-2026). Banco Mundial ⬜: el Pink Sheet es XLSX y el entorno Python del PC no tiene lector de Excel (`openpyxl`); pendiente de decidir si se instala |
+| Observatorio de Precios Junta de Extremadura (CSV por provincia) | ✅ | `observatorio_junta.py` (sesión JSF + exportación CSV por producto y campaña), 23 productos, 1.246 obs 2023–2026 en Badajoz/Cáceres. Lento (~45 s/producto): en incremental, una vez por semana |
 | Lonjas: tablas `documento_fuente` / cuarentena | ❌ | Sin PDF/OCR por ahora (D9) |
 | Lonjas: descargador con hash | ⏸️ | Solo si se retoman lonjas con PDF (D9/D10); la validación sí aplicará a los CSV |
 | Lonjas: extractores por formato (CSV/XLSX, HTML, PDF texto, OCR) | ⏸️ | Solo si se retoman lonjas con PDF (D9/D10); la validación sí aplicará a los CSV |
 | Lonjas: equivalencias de productos y unidades | ⏸️ | Solo si se retoman lonjas con PDF (D9/D10); la validación sí aplicará a los CSV |
-| Lonjas: reglas de validación | ⏸️ | Solo si se retoman lonjas con PDF (D9/D10); la validación sí aplicará a los CSV |
-| Integración en la tarea diaria + verificación en producción | ⬜ | |
+| Lonjas: reglas de validación | ⏸️ | Solo si se retoman lonjas con PDF (D9/D10). En las fuentes actuales solo se descartan precios vacíos o ≤ 0; sin rangos de plausibilidad todavía |
+| Integración en la tarea diaria + verificación en producción | ✅ | Entran en `ingest.py` (fuentes `agrifood`, `fao`, `junta_observatorio`); incremental: Agri-food últimas 10 semanas, FAO CSV completo, Junta campaña actual semanal. Carga histórica en producción con `carga_precios.bat` + `carga_junta.bat`; verificación `scripts/verificar_precios.py` |
 
 ### Fase 4 — Capa de análisis (pandas → `analisis_web`)
 
@@ -169,6 +169,11 @@ Leyenda: ⬜ pendiente · 🔄 en curso · ✅ hecho · ⛔ bloqueado · ❌ des
 Una línea por avance, la más reciente arriba. Formato:
 `AAAA-MM-DD — Fase N — qué se hizo — resultado / enlace a CHANGELOG`.
 
+- 2026-09-16 — Fase 3 — Precios agrarios en producción: portal Agri-food
+  (548.731 obs desde 2010; España, resto UE y media UE; mercados de Badajoz),
+  índice FAO (2.640) y Observatorio de Precios de la Junta (1.246, 23
+  productos, Badajoz/Cáceres 2023–2026). Corregido en caliente: productos sin
+  campaña 2023 se descartaban enteros. Pendiente: Banco Mundial (XLSX).
 - 2026-09-16 — Mantenimiento — Rendimiento: `mv_poblacion` materializada;
   `v_analisis` completa pasa de ~6,5 min a ~20 s en producción.
 - 2026-09-16 — Mantenimiento — Población: sustituido el Padrón congelado

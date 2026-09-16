@@ -366,6 +366,15 @@ def upsert_observaciones(
     filas = list(filas)
     if not filas:
         return (0, 0)
+    # Deduplicar dentro del lote (misma serie y periodo): con ON CONFLICT DO
+    # UPDATE, Postgres aborta si una fila aparece dos veces en el mismo
+    # INSERT. Pasa de verdad en el portal Agri-food (misma semana repetida
+    # en el cambio de campaña) y en el Observatorio de la Junta (campañas
+    # que se solapan). Se queda la última aparición.
+    unicas: dict[tuple, ObservacionParseada] = {}
+    for f in filas:
+        unicas[(f.territorio_clave, f.serie_codigo_origen or f.serie_nombre_origen, f.periodo_fecha)] = f
+    filas = list(unicas.values())
 
     # Cache local: evita volver a resolver territorio_id/serie_id para cada
     # punto de la misma serie (una serie trae varios periodos en Data).

@@ -39,7 +39,7 @@ import logging
 import sys
 from datetime import datetime, timezone
 
-from . import calendario, db, eurostat_ingest
+from . import agrifood, calendario, db, eurostat_ingest, fao, observatorio_junta
 from .config import Config
 from .eurostat_client import EurostatClient
 from .indicadores import INDICADORES
@@ -122,7 +122,7 @@ def main() -> int:
     )
     parser.add_argument(
         "--fuente",
-        choices=["ine", "eurostat"],
+        choices=["ine", "eurostat", "agrifood", "fao", "junta_observatorio"],
         help="Ingerir solo los indicadores de esta fuente.",
     )
     args = parser.parse_args()
@@ -146,6 +146,7 @@ def main() -> int:
         cliente_eurostat = EurostatClient(
             cfg.eurostat_api_base, cfg.eurostat_request_timeout, cfg.eurostat_request_delay_seconds
         )
+        cliente_agrifood = None
         for indicador in indicadores:
             if not indicador.activo:
                 continue
@@ -154,6 +155,17 @@ def main() -> int:
                     eurostat_ingest.ingerir_indicador(
                         conn, cfg, cliente_eurostat, indicador, args.modo
                     )
+                    continue
+                if indicador.fuente == "agrifood":
+                    if cliente_agrifood is None:
+                        cliente_agrifood = agrifood.AgrifoodClient()
+                    agrifood.ingerir_indicador(conn, cfg, cliente_agrifood, indicador, args.modo)
+                    continue
+                if indicador.fuente == "fao":
+                    fao.ingerir_indicador(conn, cfg, indicador, args.modo)
+                    continue
+                if indicador.fuente == "junta_observatorio":
+                    observatorio_junta.ingerir_indicador(conn, cfg, indicador, args.modo)
                     continue
                 indicador_id = db.get_or_create_indicador(conn, indicador)
                 if args.modo == "incremental" and not calendario.debe_ingerir_hoy(

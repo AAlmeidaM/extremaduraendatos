@@ -540,5 +540,34 @@ FROM (VALUES
 ) AS v(nivel, nombre, codigo_nuts)
 WHERE t.nivel = v.nivel AND t.nombre = v.nombre AND t.codigo_nuts IS NULL;
 
+-- =============================================================================
+--  Fase 3: precios agrarios (2026-09-16)
+--  Fuentes nuevas, territorio "Mundo" (índice FAO) y nivel 'agregado' también
+--  para indicadores (fertilizantes UE, FAO mundial). Periodicidad 'semanal'
+--  (periodo_codigo "S07", periodo_fecha = lunes de la semana).
+-- =============================================================================
+INSERT INTO fuente (codigo, nombre, url_base) VALUES
+    ('agrifood', 'Comisión Europea (DG AGRI) - Portal Agri-food', 'https://api.tech.ec.europa.eu/agrifood/api'),
+    ('fao', 'FAO - Índice de precios de los alimentos', 'https://www.fao.org/worldfoodsituation/foodpricesindex/en/'),
+    ('junta_observatorio', 'Junta de Extremadura - Observatorio de Precios y Mercados', 'https://observatoriopreciosymercados.juntaex.es')
+ON CONFLICT (codigo) DO NOTHING;
+
+INSERT INTO territorio (nivel, codigo_nuts, nombre, padre_id)
+    VALUES ('agregado', 'WORLD', 'Mundo', NULL)
+ON CONFLICT (nivel, nombre) DO NOTHING;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'indicador_nivel_territorial_check'
+          AND pg_get_constraintdef(oid) LIKE '%agregado%'
+    ) THEN
+        ALTER TABLE indicador DROP CONSTRAINT IF EXISTS indicador_nivel_territorial_check;
+        ALTER TABLE indicador ADD CONSTRAINT indicador_nivel_territorial_check
+            CHECK (nivel_territorial IN ('pais', 'ccaa', 'provincia', 'ccaa_y_provincia', 'nuts2', 'agregado'));
+    END IF;
+END $$;
+
 -- España conserva padre_id NULL (raíz de la jerarquía INE); el resto de
 -- países UE-27 cuelgan de la UE-27.

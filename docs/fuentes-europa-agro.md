@@ -175,3 +175,41 @@ in time series"…); el confidencial (`C`) se guarda como `secreto`.
 **Modo incremental:** petición mínima (`geo=ES43&lastTimePeriod=1`) para leer
 `updated`; si no cambió desde la última carga, no se descarga. Si cambió, o
 no se pudo leer, se piden los últimos 6 años.
+
+## 8. Precios agrarios implementados (fase 3, 2026-09-16)
+
+| Código interno | Fuente / endpoint | Periodicidad | Cobertura cargada | Territorios | Observaciones |
+|---|---|---|---|---|---|
+| `agrifood_porcino` | Agri-food `pigmeat/prices` (clases S, E, R, media S+E, lechón) | Semanal | 2010 → sep-2026 | 27 países + UE | 59.195 |
+| `agrifood_vacuno` | Agri-food `beef/prices` (categoría × clasificación) | Semanal | 2010 → sep-2026 | ES, PT, FR, IT, DE, IE, NL, PL + UE | 226.308 |
+| `agrifood_ovino` | Agri-food `sheepAndGoat/prices` (cordero pesado/ligero) | Semanal | 2015 → sep-2026 (inicio de la API) | 24 países + UE | 17.541 |
+| `agrifood_cereales` | Agri-food `cereal/prices` (producto × mercado × fase) | Semanal | nov-2015 → sep-2026 | 26 países + UE + **Badajoz** | 178.237 |
+| `agrifood_aceite` | Agri-food `oliveOil/prices` (categoría × mercado) | Semanal | 2010 → sep-2026 | ES, IT, EL, PT, HR... + **Badajoz** | 60.297 |
+| `agrifood_leche` | Agri-food `rawMilk/prices` | Mensual | 2010 → sep-2026 | 27 países + UE | 6.877 |
+| `agrifood_fertilizantes` | Agri-food `fertiliser/prices` (N, P, K) | Mensual | 2019 → ago-2026 | UE | 276 |
+| `fao_indice_precios_alimentos` | FAO, CSV del Food Price Index (general + 5 grupos) | Mensual | 1990 → ago-2026 | Mundo | 2.640 |
+| `junta_precios_agricolas` | Observatorio de Precios de la Junta (23 productos agrícolas, en origen) | Semanal | 2023 → sep-2026 | Badajoz, Cáceres | 1.246 |
+
+Detalles de modelado:
+
+- **Semanas:** `periodo_fecha` = lunes de la semana, `periodo_codigo` = `S` +
+  semana ISO, `anyo` = año ISO (la semana del 29-dic-2025 es `S01` de 2026).
+- **Unidades normalizadas:** `€/100 kg`, `€/t`, `€/cabeza` (lechón); la
+  unidad original va en `serie.atributos.unidad_origen`. En la Junta se
+  guarda tal cual la da la fuente (`€/100 kg`, `€/t`, `€/kg de pepita`,
+  `€/100 kilogrado`, `€/hl`).
+- **Territorios:** `Mundo` (nuevo, `codigo_nuts` `WORLD`), `Unión Europea
+  (27)` para la media UE (`EU`), países por su código; mercados de Badajoz y
+  Cáceres a su provincia; resto de mercados cuelgan del país con el mercado
+  en `serie.atributos`.
+- **Deduplicación:** `db.upsert_observaciones` deja una fila por serie y
+  periodo dentro de cada lote (el portal Agri-food repite semanas en el
+  cambio de campaña).
+- **Observatorio de la Junta — hallazgos al cargarlo:** la campaña elegida se
+  guarda en la sesión del servidor (hay que cambiarla con la llamada AJAX
+  antes de exportar); 13 de 23 productos no tienen campaña 2023 y el servidor
+  devuelve HTML en vez de CSV (se salta esa campaña); los datos son
+  dispersos (semanas sueltas en cereales, campañas en fruta). Solo hay sector
+  agricultura (ganadería vacía).
+- **Pendiente:** Banco Mundial (Pink Sheet en XLSX; hace falta `openpyxl` en
+  el `.venv` del PC) y reglas de plausibilidad de precios.
