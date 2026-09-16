@@ -1,5 +1,9 @@
 # CHANGELOG — Extremadura en Datos
 
+## 2026-09-16 — Web: maqueta visual (paso 2)
+
+- `web/maqueta/index.html`: maqueta completa del panel con datos de ejemplo (cinta, portada, 3 bloques, mapa 3D NUTS 2 con selector, pie con fuentes y avisos). Ver docs/web-extremaduraendatos.md §8.
+
 ## 2026-09-16 (7)
 
 - **Web pública: diseño y requisitos (solo documentación).** Nuevo

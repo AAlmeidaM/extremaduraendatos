@@ -132,7 +132,7 @@ exportar_web.py → web/data/*.json  ──────────────�
 | 0 | Requisitos legales y avisos (este documento §3-§4) | — | ✅ |
 | 0b | Solicitar autorización al Observatorio de la Junta | Usuario | ⬜ |
 | 1 | Infraestructura: dominio, GitHub, Vercel, página provisional "próximamente" publicada y actualización automática por `git push` probada | Usuario (cuentas/dominio) | ✅ 2026-09-16: repositorio privado `AAlmeidaM/extremaduraendatos` (rama `main`), proyecto de Vercel con Root Directory `web`, página provisional **publicada** en la dirección `.vercel.app` del proyecto; subida con `subir_a_github.bat`. Pendiente del usuario: añadir `extremaduraendatos.com` en Settings → Domains |
-| 2 | Diseño visual: paleta por bloque, tipografía, componentes (cinta, tarjetas, selector de mapa), maqueta de la página completa con datos de ejemplo | 1 | ⬜ |
+| 2 | Diseño visual: paleta por bloque, tipografía, componentes (cinta, tarjetas, selector de mapa), maqueta de la página completa con datos de ejemplo | 1 | 🔄 2026-09-16: maqueta en `web/maqueta/` (noindex, datos inventados) pendiente de revisión estética del usuario |
 | 3 | Exportador de datos para la web (`exportar_web.py`): JSON por bloque + cinta de últimos datos, enganchado a la ingesta nocturna y al `git push` | 1 | ⬜ |
 | 4 | **Bloque 3 – Del mercado al campo** con análisis real: precios Badajoz/España/UE, transmisión (cointegración/corrección del error, asimetría) con validación | 2, 3, fase 4 de análisis | ⬜ |
 | 5 | Datos nuevos: `openpyxl`, afiliación Seguridad Social, contornos GISCO, histórico de revisiones | — (puede ir en paralelo a 4) | ⬜ |
@@ -143,6 +143,25 @@ exportar_web.py → web/data/*.json  ──────────────�
 
 ## 8. Registro de avances
 
+- 2026-09-16 — Paso 2 — Maqueta visual `web/maqueta/index.html` (una sola
+  página, sin compilación, librerías desde jsDelivr: ECharts 5.5, echarts-gl
+  2.0 para el mapa 3D, GSAP 3.12 ScrollTrigger). Contiene: cinta de últimos
+  datos (pausa al pasar el ratón), portada con KPIs y mapa de Europa con arcos
+  animados a las regiones gemelas, bloque 1 (tiles con minigráfica, paro con
+  estimación e intervalo 80 %, alertas con icono+texto, ranking CCAA), bloque
+  2 (mapa NUTS 2 en 3D con selector de 4 indicadores, gemelas, dispersión de
+  convergencia), bloque 3 (precios Badajoz/España/UE con selector de producto
+  y zoom, transmisión por semanas con intervalo, asimetría, cadena de costes
+  animada) y pie con método, fuentes/licencias literales del §3 y avisos del §4.
+  Decisiones de diseño: acentos de bloque (#22d3ee, #a78bfa, #a3e635) solo
+  como identidad de sección; series de datos con paleta validada por
+  `validate_palette.js` en modo oscuro sobre #0b1016 — Extremadura #dd6b20,
+  España #1c9fbf, UE #9b72f0, resto #4a5a6e; mapa con rampa secuencial de un
+  solo tono (violeta, más valor = más claro). Estados reservados
+  (ok/atención) siempre con icono y texto. Cada gráfico tiene tooltip y botón
+  "Ver tabla"; `prefers-reduced-motion` desactiva animaciones. Contornos NUTS 2
+  2021 (1:20M) de GISCO leídos en tiempo de ejecución solo en la maqueta; en la
+  versión final irán dentro de la web (paso 5).
 - 2026-09-16 — Paso 1 — ✅ Despliegue correcto en Vercel confirmado por el
   usuario: la página provisional está publicada.
 - 2026-09-16 — Paso 1 — Repositorio privado `AAlmeidaM/extremaduraendatos`
