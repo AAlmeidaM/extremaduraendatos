@@ -343,7 +343,8 @@ Destino: `F:\Archive\Backups\extremadura-en-datos\`
   calendario). `v_poblacion` es trimestral y prioriza ECP definitiva >
   ECP provisional > Eurostat > Padrón; `v_analisis` normaliza cada conteo con
   la población más reciente anterior a su periodo. Detalle en CHANGELOG
-  2026-09-16 (3). Pendiente: la vista es lenta al agregarla entera (~6 min).
+  2026-09-16 (3). Rendimiento resuelto el mismo día con la vista materializada `mv_poblacion`
+  (refrescada al final de cada ingesta): agregar `v_analisis` entera ~20 s.
 - **🔴→✅ Tarea programada diaria rota del 2026-08-28 al 2026-09-16
   (corregido).** `run_ingesta.ps1` moría en la primera línea de log por
   `$ErrorActionPreference = 'Stop'` + stderr de Python en PowerShell 5.1; no

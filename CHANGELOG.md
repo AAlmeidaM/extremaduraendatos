@@ -1,5 +1,23 @@
 # CHANGELOG — Extremadura en Datos
 
+## 2026-09-16 (4)
+
+- **Rendimiento de `v_analisis` resuelto: de ~6,5 min a ~20 s** (resumen
+  completo de `scripts/verificar_naturaleza.py` en producción, mismos
+  resultados). La población de referencia se guarda ya resuelta en la vista
+  materializada nueva `mv_poblacion` (una fila por territorio y fecha con la
+  fuente de mejor prioridad, índice único `(territorio_id, periodo_fecha)`), y
+  `v_analisis` la consulta por índice en vez de recalcular `v_poblacion` fila
+  a fila. `db.refrescar_poblacion()` la recalcula al final de cada ingesta
+  (`ingest.py`; un fallo al refrescar se registra pero no deshace la
+  ingesta). En pruebas con 900.000 observaciones sintéticas: 3,6 s el método
+  nuevo; el anterior no terminó en 100 s. Verificado en producción:
+  `probar_tarea_diaria.bat` con código 0 y "Población de referencia
+  (mv_poblacion) refrescada".
+- Nota: si se cambia la definición de `mv_poblacion`, hay que borrarla
+  (`DROP MATERIALIZED VIEW mv_poblacion CASCADE`) antes de reaplicar el
+  esquema; `IF NOT EXISTS` no la redefine (comentado en el propio SQL).
+
 ## 2026-09-16 (3)
 
 - **Población de referencia: del Padrón congelado (2021) a la Estadística

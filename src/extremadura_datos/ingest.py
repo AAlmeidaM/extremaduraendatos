@@ -174,6 +174,13 @@ def main() -> int:
                 # las consultas siguientes fallarían con "transaction aborted").
                 conn.rollback()
                 hubo_error = True
+        try:
+            db.refrescar_poblacion(conn)
+            logger.info("Población de referencia (mv_poblacion) refrescada.")
+        except Exception:  # noqa: BLE001 - no debe tumbar la ingesta ya hecha
+            conn.rollback()
+            logger.exception("No se pudo refrescar mv_poblacion")
+            hubo_error = True
     finally:
         conn.close()
 

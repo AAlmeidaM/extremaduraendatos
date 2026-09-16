@@ -365,6 +365,23 @@ WHERE i.codigo IN ('ine_poblacion_ccaa', 'ine_poblacion_provincia',
         OR s.atributos->'sex'->>'codigo' = 'T'
       );
 
+-- Población de referencia YA RESUELTA (2026-09-16, rendimiento): una fila por
+-- territorio y fecha con la fuente de mejor prioridad, guardada físicamente
+-- e indexada. Calcularla dentro de v_analisis fila a fila hacía que agregar
+-- la vista entera tardase ~6 min. Se refresca al final de cada ingesta
+-- (db.refrescar_poblacion, llamado desde ingest.py). Si alguna vez cambia
+-- esta definición: DROP MATERIALIZED VIEW mv_poblacion CASCADE y reaplicar
+-- el esquema (IF NOT EXISTS no la redefine).
+CREATE MATERIALIZED VIEW IF NOT EXISTS mv_poblacion AS
+SELECT DISTINCT ON (territorio_id, periodo_fecha)
+    territorio_id, periodo_fecha, anyo, poblacion, prioridad, indicador
+FROM v_poblacion
+ORDER BY territorio_id, periodo_fecha, prioridad
+WITH DATA;
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_mv_poblacion_territorio_fecha
+    ON mv_poblacion (territorio_id, periodo_fecha);
+
 -- Vista final de análisis: como v_observacion, pero (a) excluye el secreto
 -- estadístico por defecto, (b) expone la naturaleza efectiva de cada
 -- observación (la de la tabla, salvo que su propio tipo_dato indique que es
@@ -435,9 +452,9 @@ JOIN territorio t ON t.id = s.territorio_id
 -- observación (antes: <= año), prefiriendo la fuente de mejor prioridad.
 LEFT JOIN LATERAL (
     SELECT vp.anyo, vp.poblacion, vp.periodo_fecha, vp.indicador
-    FROM v_poblacion vp
+    FROM mv_poblacion vp   -- ya resuelta por prioridad e indexada
     WHERE vp.territorio_id = t.id AND vp.periodo_fecha <= o.periodo_fecha
-    ORDER BY vp.periodo_fecha DESC, vp.prioridad
+    ORDER BY vp.periodo_fecha DESC
     LIMIT 1
 ) p ON TRUE
 WHERE NOT o.secreto;

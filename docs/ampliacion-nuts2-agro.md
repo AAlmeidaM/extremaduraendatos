@@ -169,6 +169,8 @@ Leyenda: ⬜ pendiente · 🔄 en curso · ✅ hecho · ⛔ bloqueado · ❌ des
 Una línea por avance, la más reciente arriba. Formato:
 `AAAA-MM-DD — Fase N — qué se hizo — resultado / enlace a CHANGELOG`.
 
+- 2026-09-16 — Mantenimiento — Rendimiento: `mv_poblacion` materializada;
+  `v_analisis` completa pasa de ~6,5 min a ~20 s en producción.
 - 2026-09-16 — Mantenimiento — Población: sustituido el Padrón congelado
   (2021) por la ECP trimestral del INE, cargada en producción (hasta
   1-jul-2026) y conectada a `v_poblacion`/`v_analisis`.
@@ -215,8 +217,8 @@ Una línea por avance, la más reciente arriba. Formato:
   Estadística Continua de Población (ECP), trimestral, actualizada cada
   trimestre por calendario (ver CHANGELOG 2026-09-16 (3)). `v_poblacion`
   combina ECP > Eurostat > Padrón.
-- **Rendimiento:** agregar toda `v_analisis` tarda ~6 min tras añadir la
-  población trimestral; la fase 4 debe
+- ~~**Rendimiento:**~~ **resuelto 2026-09-16** con `mv_poblacion` (~20 s
+  agregar toda `v_analisis`). Aun así, la fase 4 debe
   trabajar por indicador/periodo, no sobre la vista entera.
 - **Nombres de regiones europeas en inglés/idioma original** (etiqueta de
   Eurostat, p.ej. "Attiki", "Ile de France"); los 27 países sí en castellano.

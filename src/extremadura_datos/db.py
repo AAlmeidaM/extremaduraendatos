@@ -433,6 +433,14 @@ def upsert_observaciones(
     return (len(registros), len(registros))
 
 
+def refrescar_poblacion(conn) -> None:
+    """Recalcula mv_poblacion (población de referencia ya resuelta que usa
+    v_analisis). Barato (~20.000 filas); se llama al final de cada ingesta."""
+    with conn.cursor() as cur:
+        cur.execute("REFRESH MATERIALIZED VIEW mv_poblacion")
+    conn.commit()
+
+
 def registrar_carga(
     conn,
     indicador_id: int | None,
