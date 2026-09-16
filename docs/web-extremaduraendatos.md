@@ -5,8 +5,7 @@
 > datos que faltan y el orden de trabajo. Actualizar el **§7 Estado** y el
 > **§8 Registro** en cada avance, igual que en `ampliacion-nuts2-agro.md`.
 >
-> **Creado:** 2026-09-16 · **Estado:** 📝 Diseño acordado; requisitos legales
-> revisados; sin código de la web todavía.
+> **Creado:** 2026-09-16 · **Estado:** ✅ Paso 1 hecho (web provisional publicada en Vercel). Siguiente: paso 2, diseño visual.
 >
 > ⚠️ La revisión de licencias del §3 es una lectura de las condiciones
 > publicadas por cada organismo (septiembre 2026), no asesoramiento jurídico.
@@ -132,7 +131,7 @@ exportar_web.py → web/data/*.json  ──────────────�
 |---|---|---|---|
 | 0 | Requisitos legales y avisos (este documento §3-§4) | — | ✅ |
 | 0b | Solicitar autorización al Observatorio de la Junta | Usuario | ⬜ |
-| 1 | Infraestructura: dominio, GitHub, Vercel, página provisional "próximamente" publicada y actualización automática por `git push` probada | Usuario (cuentas/dominio) + comprobar herramientas del PC | 🔄 PC comprobado (Git 2.55, Node 24.19, npm 11.17; sin `gh` ni CLI de Vercel). Página provisional `web/index.html` + `web/vercel.json` creadas. Decidido: **un solo repositorio privado** en GitHub con la web en `web/` (Root Directory en Vercel) y dominio comprado en Vercel. Falta: cuenta de GitHub y repositorio (usuario), primer `git push`, importar en Vercel y dominio |
+| 1 | Infraestructura: dominio, GitHub, Vercel, página provisional "próximamente" publicada y actualización automática por `git push` probada | Usuario (cuentas/dominio) | ✅ 2026-09-16: repositorio privado `AAlmeidaM/extremaduraendatos` (rama `main`), proyecto de Vercel con Root Directory `web`, página provisional **publicada** en la dirección `.vercel.app` del proyecto; subida con `subir_a_github.bat`. Pendiente del usuario: añadir `extremaduraendatos.com` en Settings → Domains |
 | 2 | Diseño visual: paleta por bloque, tipografía, componentes (cinta, tarjetas, selector de mapa), maqueta de la página completa con datos de ejemplo | 1 | ⬜ |
 | 3 | Exportador de datos para la web (`exportar_web.py`): JSON por bloque + cinta de últimos datos, enganchado a la ingesta nocturna y al `git push` | 1 | ⬜ |
 | 4 | **Bloque 3 – Del mercado al campo** con análisis real: precios Badajoz/España/UE, transmisión (cointegración/corrección del error, asimetría) con validación | 2, 3, fase 4 de análisis | ⬜ |
@@ -144,6 +143,8 @@ exportar_web.py → web/data/*.json  ──────────────�
 
 ## 8. Registro de avances
 
+- 2026-09-16 — Paso 1 — ✅ Despliegue correcto en Vercel confirmado por el
+  usuario: la página provisional está publicada.
 - 2026-09-16 — Paso 1 — Repositorio privado `AAlmeidaM/extremaduraendatos`
   (rama `main`) conectado y subido desde el PC (`subir_a_github.bat`, sesión de
   GitHub guardada en Git Credential Manager). Proyecto de Vercel importado con
