@@ -1,5 +1,11 @@
 # CHANGELOG — Extremadura en Datos
 
+## 2026-09-16 — Avisos de datos nuevos por Telegram
+
+- `scripts/notificar_telegram.py` (+ `telegram_prueba.bat`): mensaje con datos nuevos, comparación con periodo anterior, año anterior, España y UE, y calendario del INE; enganchado a `run_ingesta.ps1`.
+- `scripts/telegram_configurar.py` (+ `telegram_configurar.bat`): comprueba el token, guarda el chat y envía un mensaje de prueba.
+- `.env.example`: variables `TELEGRAM_BOT_TOKEN` y `TELEGRAM_CHAT_ID`.
+
 ## 2026-09-16 — Web: mapa 2D interactivo, contraste de cifras y textos sencillos
 
 - Mapa de regiones en 2D con colores por tramos respecto a la media UE, dato al pasar el cursor y al hacer clic.

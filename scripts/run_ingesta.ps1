@@ -58,6 +58,17 @@ try {
     Pop-Location
 }
 
+# Avisos por Telegram (2026-09-16): datos nuevos + calendario. Sin token en
+# .env no hace nada. Un fallo aqui tampoco cambia el codigo de salida.
+Push-Location $proyectoDir
+try {
+    $ErrorActionPreference = 'Continue'
+    & $py scripts\notificar_telegram.py 2>&1 | ForEach-Object { "$_" } | Tee-Object -FilePath $logFile -Append
+} finally {
+    $ErrorActionPreference = 'Stop'
+    Pop-Location
+}
+
 # Copia siempre legible del ultimo log, sin tener que buscar por fecha.
 Copy-Item $logFile (Join-Path $logDir 'latest.log') -Force
 

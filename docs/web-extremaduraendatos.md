@@ -143,6 +143,27 @@ exportar_web.py → web/data/*.json  ──────────────�
 
 ## 8. Registro de avances
 
+- 2026-09-16 — Avisos por Telegram (bot @datosextremadura_bot).
+  - `scripts/notificar_telegram.py`, llamado desde `run_ingesta.ps1` tras la
+    exportación de la web. Para 20 series clave (paro EPA, población, turismo,
+    compraventa, hipotecas, IPV, IPC, sociedades, confianza empresarial, 4 de
+    Eurostat y 6 de precios agrarios) compara el último periodo con el último
+    avisado (tabla `telegram_aviso`, creada por el propio script) y envía los
+    nuevos con: valor, cambio frente al periodo anterior y frente a hace un año,
+    y el mismo dato de España y/o media UE (si la comparación no tiene el mismo
+    periodo, usa el último anterior y lo indica). Marca ⚠️ las series paradas
+    (más de 30/100/200/900 días según sean semanales/mensuales/trimestrales/
+    anuales). Añade las publicaciones del INE de los próximos 7 días
+    (`calendario_publicacion`) y los lunes envía el calendario aunque no haya
+    novedades (tabla `telegram_resumen`). La primera ejecución manda un resumen
+    con el último dato de todo.
+  - Eurostat, Agri-food y FAO no tienen calendario en la base de datos; sus
+    novedades se detectan al cargarse.
+  - Configuración: `TELEGRAM_BOT_TOKEN` (lo pone el usuario en `.env`, que está
+    en `.gitignore`) y `TELEGRAM_CHAT_ID` (lo escribe `telegram_configurar.bat`
+    tras enviar /start al bot). Sin ellas el script no envía nada.
+    `telegram_prueba.bat` genera el mensaje sin enviarlo
+    (`_ejecucion_claude/telegram_prueba.txt`), probado correctamente.
 - 2026-09-16 — Paso 3 (revisión) — Petición del usuario: mapa más legible y
   con dato por región, contraste de cifras, textos para público general y autoría.
   - **Mapa**: se sustituye el 3D (echarts-gl, retirado) por un mapa 2D de
