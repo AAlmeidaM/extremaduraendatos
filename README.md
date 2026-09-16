@@ -1,8 +1,13 @@
 # Extremadura en Datos
 
 Backend que descarga indicadores regionales/provinciales de distintas fuentes
-públicas (INE y, desde 2026-09-15, Eurostat para la comparativa NUTS2 europea), los unifica en un esquema común y los guarda en PostgreSQL. Empieza
-por el INE (economía y mercado laboral, Extremadura/Badajoz/Cáceres).
+públicas, los unifica en un esquema común y los guarda en PostgreSQL:
+INE (todas las CCAA, Badajoz/Cáceres, población trimestral), Eurostat
+(regiones NUTS2 de la UE), portal Agri-food de la Comisión Europea y FAO
+(precios agrarios) y Observatorio de Precios de la Junta de Extremadura.
+
+> **¿Retomas el proyecto?** Lee primero
+> [docs/ESTADO-Y-SIGUIENTES-PASOS.md](docs/ESTADO-Y-SIGUIENTES-PASOS.md).
 
 ---
 
@@ -96,9 +101,12 @@ cp .env.example .env
 src\extremadura_datos\   Código fuente (paquete Python)
 sql\                      Esquema de base de datos (001_schema.sql)
 scripts\                  setup.ps1, run_ingesta.ps1, reporte_estructura.py,
-                          verificar_carga.py
-tests\                    Pruebas (sin red; usan un JSON de ejemplo)
-docs\                     Documentación técnica adicional (fuentes-ine.md)
+                          verificar_carga.py, verificar_naturaleza.py,
+                          verificar_precios.py
+tests\                    Pruebas sin red (fixtures con respuestas reales)
+docs\                     Estado y siguientes pasos, plan de ampliación,
+                          fuentes INE y fuentes europeas/agro
+*.bat                     Lanzadores de doble clic (cargas y verificaciones)
 ```
 
 ---
@@ -107,10 +115,11 @@ docs\                     Documentación técnica adicional (fuentes-ine.md)
 
 | Archivo | Contenido |
 |---|---|
+| [docs/ESTADO-Y-SIGUIENTES-PASOS.md](docs/ESTADO-Y-SIGUIENTES-PASOS.md) | **Empieza aquí:** foto actual, cómo se opera, problemas conocidos y siguientes pasos |
 | [PROJECT.md](PROJECT.md) | Ficha técnica completa: arquitectura, datos, puertos, backup, recuperación |
 | [CHANGELOG.md](CHANGELOG.md) | Historial de cambios |
 | [docs/fuentes-europa-agro.md](docs/fuentes-europa-agro.md) | Fuentes verificadas de la ampliación: Eurostat, DG AGRI, FAO, embalses, lonjas |
 | [docs/ampliacion-nuts2-agro.md](docs/ampliacion-nuts2-agro.md) | Plan y seguimiento de la ampliación NUTS2 europea + sector agropecuario (estado por fase, registro de avances) |
-| [docs/fuentes-ine.md](docs/fuentes-ine.md) | Tablas del INE usadas, enlaces, y el aviso de que el parseo no se ha probado contra la API real |
+| [docs/fuentes-ine.md](docs/fuentes-ine.md) | Tablas del INE usadas (incluida la población ECP), enlaces y verificación contra la API real |
 
 Estándar del equipo: `C:\OfficeLab\PROJECT_STANDARD.md`

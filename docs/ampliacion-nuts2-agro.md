@@ -50,6 +50,10 @@ capa 1 ingesta → capa 2 análisis pandas (`analisis_web`) → capa 3 web.
 
 ## 3. Fuentes previstas (pendientes de verificar en fase 0)
 
+> Tabla histórica del plan inicial. Lo realmente implementado y verificado
+> está en `docs/fuentes-europa-agro.md` (§7 Eurostat, §8 precios) y en el
+> resumen `docs/ESTADO-Y-SIGUIENTES-PASOS.md`.
+
 | Fuente | Acceso previsto | Frecuencia | Territorio | Qué aporta |
 |---|---|---|---|---|
 | **Eurostat** | API JSON-stat (verificada) | Anual | NUTS2 UE | PIB (`nama_10r_2gdp`), VAB por ramas (`nama_10r_3gva`), paro/empleo (`lfst_r_lfu3rt`, `lfst_r_lfe2emprt`, `lfst_r_lfe2en2`), I+D (`rd_e_gerdreg`), población (`demo_r_d2jan`), renta hogares (`nama_10r_2hhinc`), cabaña ganadera (`ef_lsk_main`) — ver `fuentes-europa-agro.md` |
@@ -169,6 +173,8 @@ Leyenda: ⬜ pendiente · 🔄 en curso · ✅ hecho · ⛔ bloqueado · ❌ des
 Una línea por avance, la más reciente arriba. Formato:
 `AAAA-MM-DD — Fase N — qué se hizo — resultado / enlace a CHANGELOG`.
 
+- 2026-09-16 — Documentación — Documento de traspaso
+  `docs/ESTADO-Y-SIGUIENTES-PASOS.md` (foto actual, operación, siguientes pasos).
 - 2026-09-16 — Fase 3 — Precios agrarios en producción: portal Agri-food
   (548.731 obs desde 2010; España, resto UE y media UE; mercados de Badajoz),
   índice FAO (2.640) y Observatorio de Precios de la Junta (1.246, 23
@@ -205,7 +211,14 @@ Una línea por avance, la más reciente arriba. Formato:
   documentado (este archivo, `PROJECT.md` §4 y §17, `CHANGELOG.md`). Sin
   código ni cambios en la base de datos.
 
-## 8. Riesgos y preguntas abiertas
+## 8. Siguientes pasos
+
+Resumidos y priorizados en `docs/ESTADO-Y-SIGUIENTES-PASOS.md` §4:
+confirmar la tarea diaria, Banco Mundial (requiere `openpyxl`), reglas de
+plausibilidad de precios, y fase 4 (análisis) con las decisiones previas
+(enganche, alcance, tabla de salida, dependencias).
+
+## 9. Riesgos y preguntas abiertas
 
 - **Fragilidad de las lonjas:** cambian formato o URL sin avisar → adaptador
   aislado por lonja, alertas en el log y cuarentena.

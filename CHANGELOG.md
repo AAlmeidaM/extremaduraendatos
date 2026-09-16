@@ -1,5 +1,17 @@
 # CHANGELOG — Extremadura en Datos
 
+## 2026-09-16 (6)
+
+- **Documentado para retomar más adelante.** Nuevo
+  `docs/ESTADO-Y-SIGUIENTES-PASOS.md`: qué hay en producción (fuentes,
+  indicadores, volúmenes), modelo de datos, cómo decide cada fuente si
+  descarga, lanzadores `.bat`, verificación, notas para trabajar con un
+  agente de IA (red solo desde Windows, Computer Use, bloqueo de Git),
+  pendientes cortos, decisiones previas a la fase 4, fases aplazadas y
+  checklist para retomar. `PROJECT.md` (§1–§4, §6, §12), `README.md` y
+  `docs/ampliacion-nuts2-agro.md` (nueva §8 "Siguientes pasos") actualizados
+  y enlazados a él.
+
 ## 2026-09-16 (5)
 
 - **Fase 3: precios agrarios en producción.** Tres fuentes nuevas:

@@ -5,6 +5,10 @@
 > trabajo meses después sin ninguna explicación adicional.
 >
 > Estándar de referencia: `C:\OfficeLab\PROJECT_STANDARD.md`
+>
+> **¿Retomas el proyecto?** Empieza por
+> [`docs/ESTADO-Y-SIGUIENTES-PASOS.md`](docs/ESTADO-Y-SIGUIENTES-PASOS.md):
+> foto actual, cómo se opera y siguientes pasos priorizados.
 
 **Última actualización:** 2026-09-16
 
@@ -16,7 +20,7 @@
 |---|---|
 | **Nombre** | Extremadura en Datos |
 | **Slug** | `extremadura-en-datos` |
-| **Estado** | Production (datos reales cargados, 2026-08-28) |
+| **Estado** | Production (INE desde 2026-08-28; Eurostat, población ECP y precios agrarios desde 2026-09-16) |
 | **Creado** | 2026-08-26 |
 | **Responsable** | almei |
 
@@ -25,9 +29,15 @@
 ## 2. Descripción
 
 Backend que descarga indicadores estadísticos regionales y provinciales de
-distintas fuentes públicas (empezando por el INE), los normaliza a un
-esquema común, y los almacena en PostgreSQL. No tiene interfaz ni API
-todavía: por ahora es un pipeline de ingesta que se ejecuta una vez al día.
+distintas fuentes públicas, los normaliza a un esquema común, y los almacena
+en PostgreSQL. Fuentes en producción (2026-09-16): **INE** (economía,
+empleo, turismo, vivienda, precios y población trimestral de todas las CCAA
+y Badajoz/Cáceres), **Eurostat** (comparativa NUTS2 europea), **portal
+Agri-food de la Comisión Europea** y **FAO** (precios agrarios europeos y
+mundiales) y **Observatorio de Precios de la Junta de Extremadura** (precios
+agrícolas por provincia). ≈2 millones de observaciones. No tiene interfaz ni
+API todavía: es un pipeline de ingesta que se ejecuta una vez al día; la
+capa de análisis y la web son las fases siguientes.
 
 ---
 
@@ -58,6 +68,12 @@ tabla propia — y la web se construye solo sobre esa tabla de salida. Ver
 §4 (diagrama) y la entrada correspondiente en §17 para el detalle y lo que
 queda por decidir.
 
+**Ampliación (2026-09-15/16):** además de España, comparar Extremadura con
+las regiones NUTS2 de la UE y seguir el sector agropecuario (precios
+locales, europeos y mundiales). Plan y estado en
+`docs/ampliacion-nuts2-agro.md`; resumen en
+`docs/ESTADO-Y-SIGUIENTES-PASOS.md`.
+
 **Criterio de éxito de esta fase:** ejecutar la ingesta y comprobar en
 PostgreSQL que la tabla `observacion` tiene filas de los 24 indicadores
 catalogados (ver `src\extremadura_datos\indicadores.py`) para
@@ -76,16 +92,17 @@ idempotente.
 Programador de tareas (diario) -> run_ingesta.ps1 -> python -m extremadura_datos.ingest
                                                             |
                                                             v
-                     IneClient (API JSON del INE, Tempus3)   EurostatClient (JSON-stat, 2026-09-15)
-                                          |                                  |
-                                          v                                  v
-                     parse.py (filtra CCAA/provincias,      eurostat_parse.py (UE-27, países,
-                               normaliza a filas por SERIE)    NUTS2, Badajoz/Cáceres)
+        (2026-09-16: una rama por fuente, según indicador.fuente)
+   INE (ine_client +      Eurostat (eurostat_*   Agri-food UE      FAO          Observatorio Junta
+   parse + calendario)    JSON-stat, NUTS2)      (agrifood.py)     (fao.py)     (observatorio_junta.py)
+                                          \          |         |           /
+                                           normalizan a filas por SERIE (ObservacionParseada)
                                                             |
                                                             v
                                     PostgreSQL 17 compartido (base "extremadura_en_datos")
                                     fuente / territorio / indicador / serie / observacion / carga_log
-                                    calendario_publicacion -- v_observacion / v_poblacion / v_analisis
+                                    calendario_publicacion -- v_observacion / v_poblacion /
+                                    mv_poblacion (refrescada al final de cada ingesta) / v_analisis
                                                             |
                                                             v
                         [PLANEADO 2026-08-28, NO IMPLEMENTADO TODAVÍA]
@@ -161,6 +178,8 @@ alcance concreto del "análisis de tendencia" (el usuario lo dejó abierto,
 | Driver BD | psycopg2-binary | ≥2.9 |
 | Config | python-dotenv | ≥1.0 |
 | Programación de tareas | Programador de tareas de Windows | — |
+| Tests | pytest (no incluido en requirements; instalar para ejecutar `tests/`) | — |
+| Scraping del Observatorio de la Junta | requests + `html.parser` de la biblioteca estándar | — |
 
 ---
 
@@ -257,9 +276,12 @@ pide los últimos periodos, es la que usa la tarea diaria):
 
 Ambas admiten `--solo <codigo>` para un único indicador (ver
 `indicadores.py`), p.ej. `--modo historico --solo ine_ipc_ccaa`, y
-`--fuente ine|eurostat` para una sola fuente. Carga histórica de Eurostat
-(fase 1 de la ampliación NUTS2) sin terminal: doble clic en
-`carga_eurostat.bat` (log en `_ejecucion_claude\eurostat.txt`).
+`--fuente ine|eurostat|agrifood|fao|junta_observatorio` para una sola
+fuente. Lanzadores sin terminal (doble clic, salida en `_ejecucion_claude\`):
+`probar_tarea_diaria.bat`, `carga_eurostat.bat`, `carga_poblacion_ecp.bat`,
+`carga_precios.bat`, `carga_junta.bat`, `verificar_naturaleza.bat`,
+`verificar_precios.bat` — tabla completa en
+`docs/ESTADO-Y-SIGUIENTES-PASOS.md` §3.
 
 Para ver un resumen legible de la estructura del esquema y del volumen de
 datos cargado (totales, por territorio, por categoría, por periodicidad y
