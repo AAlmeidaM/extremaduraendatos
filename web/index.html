@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <title>Extremadura en Datos</title>
+<meta name="author" content="Alejandro Almeida (alejandroalmeida.es)">
 <meta name="description" content="Panel de datos abiertos sobre Extremadura: economía, comparación con las regiones de la UE y precios agrarios, actualizado cada día.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230b1016'/%3E%3Cpath d='M14 44 L26 30 L36 38 L50 20' stroke='%2322d3ee' stroke-width='6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -187,6 +188,11 @@ footer li b{color:var(--ink);font-weight:600}
 .error-carga{background:#2a1414;border:1px solid #5a2a2a;color:#ffb4ab;padding:14px;border-radius:10px;margin:20px 16px}
 .dato-mapa{display:flex;gap:18px;flex-wrap:wrap;margin:-4px 0 10px;font-size:13px;color:var(--ink2)}
 .dato-mapa b{font-family:var(--mono);color:var(--ink)}
+.dato-mapa{min-height:44px;background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:8px 12px;margin:0 0 10px;align-items:center}
+.leyenda-mapa{font-size:12px;color:var(--ink2);margin:6px 0 0}
+.tecnica{font-size:11px;color:var(--muted);margin:8px 0 0;line-height:1.45}
+.tecnica b{color:var(--ink2);font-weight:600}
+.autor a{color:var(--pulso);text-decoration:none}.autor a:hover{text-decoration:underline}
 </style>
 </head>
 <body class="sin-js">
@@ -216,13 +222,13 @@ footer li b{color:var(--ink);font-weight:600}
     <div class="revela">
       <div class="kicker">Panel de datos abiertos · Extremadura</div>
       <h1>La región,<br><em>en cifras que se mueven.</em></h1>
-      <p class="lead">Indicadores oficiales de Extremadura actualizados cada día, comparados con España y con las regiones de la Unión Europea, junto a cálculos estadísticos propios con su margen de error.</p>
+      <p class="lead">Datos oficiales sobre Extremadura, actualizados cada día. Los comparamos con España y con el resto de regiones de Europa, y añadimos cálculos propios para entender hacia dónde va la región.</p>
       <div class="actualizado"><i></i><span id="resumen">Cargando datos…</span></div>
       <div class="kpis" id="kpis"></div>
     </div>
     <div class="revela">
       <div id="mapaHero" role="img" aria-label="Mapa de Europa con Extremadura conectada a sus regiones de perfil más parecido"></div>
-      <div class="pie-mapa">Extremadura y las regiones de la UE con el perfil más parecido · © EuroGeographics para los límites administrativos</div>
+      <div class="pie-mapa">Extremadura y las regiones europeas que más se le parecen · © EuroGeographics para los límites administrativos</div>
     </div>
   </div>
 </section>
@@ -234,26 +240,28 @@ footer li b{color:var(--ink);font-weight:600}
       <div class="num">01</div>
       <div>
         <h2>El pulso</h2>
-        <p>Cómo evoluciona la economía y la sociedad extremeña con el último dato de cada fuente, su comparación con el mismo periodo del año anterior y una estimación de hacia dónde se mueve el paro en los próximos trimestres.</p>
+        <p>Lo último que se sabe sobre empleo, turismo, vivienda y empresas en Extremadura, comparado con el mismo periodo del año anterior.</p>
       </div>
     </div>
     <div class="rejilla">
       <div id="tiles" style="display:contents"></div>
 
       <div class="tarjeta s8 revela">
-        <h3>Tasa de paro: Extremadura y España <span class="etiqueta-est">estimación</span></h3>
-        <p class="sub">Porcentaje de la población activa, trimestral. A la derecha, estimación para los próximos cuatro trimestres con su intervalo del 80 %.</p>
+        <h3>Paro en Extremadura y en España, y lo que puede venir <span class="etiqueta-est">estimación</span></h3>
+        <p class="sub">Porcentaje de personas que quieren trabajar y no encuentran empleo, cada trimestre. La línea discontinua es una estimación para el próximo año; la zona sombreada marca dónde caería el dato real 8 de cada 10 veces.</p>
         <div class="graf" id="gParo"></div>
-        <div class="pie-t"><span id="notaParo">Elaboración propia con datos extraídos del sitio web del INE: www.ine.es</span><button data-tabla="gParo">Ver tabla</button></div>
+        <p class="tecnica" id="notaParo"></p>
+        <div class="pie-t"><span>Elaboración propia con datos extraídos del sitio web del INE: www.ine.es</span><button data-tabla="gParo">Ver tabla</button></div>
       </div>
       <div class="tarjeta s4 revela">
-        <h3>Movimientos a vigilar</h3>
-        <p class="sub">Variación interanual del último dato frente a la de los cinco años anteriores. Se marca cuando queda fuera del 90 % central.</p>
+        <h3>¿Algo fuera de lo normal?</h3>
+        <p class="sub">Comprobamos si el último dato ha cambiado mucho más de lo habitual respecto al año anterior.</p>
         <div class="alertas" id="alertas"></div>
+        <p class="tecnica"><b>Técnica:</b> se compara la variación interanual del último dato con las de los cinco años anteriores (percentil); se avisa si queda por debajo del 5 % o por encima del 95 %.</p>
       </div>
 
       <div class="tarjeta s12 revela">
-        <h3>Extremadura frente al resto de comunidades</h3>
+        <h3>Paro por comunidad autónoma</h3>
         <p class="sub" id="subRanking">Tasa de paro por comunidad autónoma, último trimestre publicado, de mayor a menor.</p>
         <div class="graf" id="gCCAA"></div>
         <div class="pie-t"><span>Elaboración propia con datos extraídos del sitio web del INE: www.ine.es</span><button data-tabla="gCCAA">Ver tabla</button></div>
@@ -268,34 +276,38 @@ footer li b{color:var(--ink);font-weight:600}
       <div class="num">02</div>
       <div>
         <h2>Extremadura en Europa</h2>
-        <p>La región comparada con las regiones NUTS 2 de la Unión Europea: dónde se sitúa en cada indicador, qué regiones tienen un perfil más parecido y si la distancia con la media europea se acorta con los años.</p>
+        <p>Cómo está Extremadura frente a las más de 230 regiones de la Unión Europea, qué regiones se le parecen y si se acerca o se aleja de la media europea.</p>
       </div>
     </div>
     <div class="rejilla">
       <div class="tarjeta s8 revela">
-        <h3>Mapa de regiones europeas</h3>
-        <p class="sub" id="subMapa">Elige un indicador. La altura y la intensidad del color de cada región representan su valor.</p>
+        <h3>Mapa de las regiones europeas</h3>
+        <p class="sub" id="subMapa"></p>
         <div class="filtros" role="group" aria-label="Indicador del mapa" id="selMapa"></div>
         <div class="dato-mapa" id="datoMapa"></div>
-        <div class="graf alto" id="mapa3d" role="img" aria-label="Mapa 3D de las regiones NUTS 2 de la UE"></div>
+        <div class="graf alto" id="mapa3d" role="img" aria-label="Mapa de las regiones de la UE coloreadas según el indicador elegido"></div>
+        <p class="leyenda-mapa" id="leyendaMapa"></p>
+        <p class="tecnica">Pasa el cursor o toca una región para ver su dato; usa la rueda del ratón o dos dedos para acercar. Extremadura aparece con borde blanco. <b>Técnica:</b> regiones NUTS 2; colores por cuartiles a cada lado de la media de la UE (o por sextiles si no hay media).</p>
         <div class="pie-t"><span>Fuente: Eurostat, con tratamiento propio · © EuroGeographics para los límites administrativos</span><button data-tabla="mapa3d">Ver tabla</button></div>
       </div>
       <div class="tarjeta s4 revela">
-        <h3>Regiones de perfil parecido <span class="etiqueta-est">cálculo propio</span></h3>
-        <p class="sub">Regiones de la UE más cercanas a Extremadura considerando a la vez los indicadores de abajo.</p>
+        <h3>Regiones que se parecen a Extremadura <span class="etiqueta-est">cálculo propio</span></h3>
+        <p class="sub">Las regiones europeas con cifras más parecidas a las de Extremadura en todos estos indicadores a la vez.</p>
         <div class="gemelas" id="gemelas"></div>
         <div class="perfil" id="perfil"></div>
-        <p class="nota">Similitud 100 = mismo perfil; 0 = tan distinta como la región típica de la UE. Parecido de perfil, no cercanía geográfica.</p>
+        <p class="nota">100 = cifras idénticas; 0 = tan diferente como una región europea cualquiera. Se parecen en cifras, no por estar cerca.</p>
+        <p class="tecnica"><b>Técnica:</b> distancia euclídea entre las variables tipificadas (puntuaciones z), expresada frente a la distancia mediana entre regiones.</p>
       </div>
       <div class="tarjeta s8 revela">
-        <h3>¿Se acorta la distancia con Europa?</h3>
+        <h3>¿Se acerca Extremadura a la media europea?</h3>
         <p class="sub" id="subConv">Cada punto es una región: PIB por habitante (UE = 100) al inicio del periodo frente a cuántos puntos gana o pierde cada año respecto a la media.</p>
         <div class="graf" id="gConv" style="height:380px"></div>
+        <p class="tecnica" id="tecConv"></p>
         <div class="pie-t"><span>Fuente: Eurostat, con tratamiento propio</span><button data-tabla="gConv">Ver tabla</button></div>
       </div>
       <div class="tarjeta s4 revela">
-        <h3>PIB por habitante frente a la UE</h3>
-        <p class="sub">Índice UE = 100, en paridad de poder de compra.</p>
+        <h3>Riqueza por habitante frente a la UE</h3>
+        <p class="sub">PIB por habitante ajustado al coste de vida. 100 es la media de la UE.</p>
         <div class="graf" id="gPibHist" style="height:380px"></div>
         <div class="pie-t"><span>Fuente: Eurostat, con tratamiento propio</span><button data-tabla="gPibHist">Ver tabla</button></div>
       </div>
@@ -309,7 +321,7 @@ footer li b{color:var(--ink);font-weight:600}
       <div class="num">03</div>
       <div>
         <h2>Del mercado al campo</h2>
-        <p>Precios agrarios semanales y mensuales de España, la media de la UE y, cuando existe, el mercado de Badajoz; cómo se mueven juntos los precios españoles y europeos y cómo evolucionan los costes a lo largo de la cadena.</p>
+        <p>Lo que cobran agricultores y ganaderos en España, en la media de la UE y, cuando hay dato, en Badajoz; cuánto tardan en llegar aquí los cambios de precio europeos y cómo se encarecen o abaratan los costes.</p>
       </div>
     </div>
     <div class="rejilla">
@@ -318,24 +330,26 @@ footer li b{color:var(--ink);font-weight:600}
         <p class="sub" id="subPrecio"></p>
         <div class="filtros" role="group" aria-label="Producto" id="selProducto"></div>
         <div class="graf" id="gPrecios" style="height:360px"></div>
+        <p class="tecnica">Arrastra la barra inferior para ver otros años. Precio en origen: lo que se paga al productor, antes de llegar a la tienda.</p>
         <div class="pie-t"><span>Fuente: Comisión Europea, Agri-food data portal, con tratamiento propio</span><button data-tabla="gPrecios">Ver tabla</button></div>
       </div>
       <div class="tarjeta s6 revela">
-        <h3>¿Con cuánto retraso sigue España al precio europeo? <span class="etiqueta-est">cálculo propio</span></h3>
-        <p class="sub">Cerdo de cebo. Correlación entre el cambio semanal del precio medio de la UE y el del precio español una o varias semanas después (últimos cinco años). Las barras por encima de la línea discontinua son estadísticamente distintas de cero.</p>
+        <h3>¿Cuánto tarda en llegar a España un cambio del precio europeo? <span class="etiqueta-est">cálculo propio</span></h3>
+        <p class="sub">Cerdo de cebo. Cada barra dice cuánto se parece el movimiento del precio español al del europeo esa misma semana (0) o unas semanas después. Cuanto más alta, más se parecen; por debajo de la línea discontinua, el parecido puede ser casualidad.</p>
         <div class="graf" id="gRetardo"></div>
+        <p class="tecnica"><b>Técnica:</b> correlación cruzada de las variaciones semanales (logarítmicas) de los últimos cinco años; umbral de significación al 95 % (1,96/√n).</p>
         <div class="pie-t"><span>Elaboración propia con datos de la Comisión Europea</span><button data-tabla="gRetardo">Ver tabla</button></div>
       </div>
       <div class="tarjeta s6 revela">
-        <h3>Subidas y bajadas <span class="etiqueta-est">cálculo propio</span></h3>
-        <p class="sub">Cerdo de cebo. Cambio del precio español en cuatro semanas por cada 1 % de cambio en la media de la UE, según el sentido del movimiento europeo (últimos cinco años).</p>
+        <h3>¿Se contagian igual las subidas que las bajadas? <span class="etiqueta-est">cálculo propio</span></h3>
+        <p class="sub">Cerdo de cebo. Cuánto cambia el precio español en cuatro semanas por cada 1 % que cambia el europeo. Un 1 significa que se mueve igual que la UE; más de 1, con más fuerza.</p>
         <div class="graf" id="gAsim"></div>
-        <p class="nota" id="notaAsim"></p>
+        <p class="tecnica" id="notaAsim"></p>
         <div class="pie-t"><span>Elaboración propia con datos de la Comisión Europea</span><button data-tabla="gAsim">Ver tabla</button></div>
       </div>
       <div class="tarjeta s12 revela">
-        <h3>Cadena de costes</h3>
-        <p class="sub">Último precio de cada eslabón y su variación frente al mismo periodo del año anterior, desde el abono y el pienso hasta el precio del cerdo.</p>
+        <h3>De los costes al precio final</h3>
+        <p class="sub">Del abono y el pienso al precio del cerdo: último precio de cada paso y cuánto ha cambiado en un año.</p>
         <div class="cadena" id="cadena"></div>
         <div class="pie-t"><span>Fuentes: Comisión Europea, Agri-food data portal; FAO. 2026. FAO Food Price Index. Licencia: CC-BY-4.0.</span></div>
       </div>
@@ -350,9 +364,10 @@ footer li b{color:var(--ink);font-weight:600}
       <div>
         <h4>Sobre el proyecto</h4>
         <p><b style="color:var(--ink)">Extremadura en Datos</b> es un proyecto personal y sin ánimo de lucro que reúne datos oficiales sobre Extremadura, los compara con España y Europa y añade análisis estadísticos propios.</p>
+        <p class="autor">Autor: <b style="color:var(--ink)">Alejandro Almeida</b> · <a href="https://alejandroalmeida.es" rel="author">alejandroalmeida.es</a></p>
         <p>Los datos se descargan de las fuentes originales cada mañana. El texto de la página es descriptivo y no cambia; solo cambian las cifras.</p>
         <h4 style="margin-top:22px">Método</h4>
-        <p>Las estimaciones, las regiones de perfil parecido y las relaciones entre precios son cálculos estadísticos propios con incertidumbre; cada gráfico explica cómo se obtienen y, cuando procede, el error que habrían tenido en el pasado.</p>
+        <p>Las cifras oficiales se muestran tal como las publican las fuentes y se comprueban contra ellas. Lo marcado como <i>estimación</i> o <i>cálculo propio</i> es análisis estadístico con margen de error: cada gráfico explica en sencillo cómo se obtiene y, debajo, la técnica usada.</p>
         <div class="descargas"><a href="datos/panel.json" download>panel.json</a></div>
       </div>
       <div>
@@ -377,14 +392,13 @@ footer li b{color:var(--ink);font-weight:600}
         </ul>
       </div>
     </div>
-    <div class="legal"><span>© 2026 Extremadura en Datos · proyecto no comercial</span><span class="mono" id="generado"></span></div>
+    <div class="legal"><span class="autor">© 2026 Extremadura en Datos · un proyecto de <a href="https://alejandroalmeida.es" rel="author">Alejandro Almeida</a> · no comercial</span><span class="mono" id="generado"></span></div>
   </div>
 </footer>
 
 <dialog id="dlg"><div id="dlgBody"></div><form method="dialog" style="text-align:right;margin-top:12px"><button style="all:unset;cursor:pointer;color:var(--ink2);text-decoration:underline">Cerrar</button></form></dialog>
 
 <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/echarts-gl@2.0.9/dist/echarts-gl.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
 <script>
@@ -457,7 +471,7 @@ function bloquePulso(B){
     <div class="v">${nf(t.valor,t.decimales)}${t.unidad?`<small>${esc(t.unidad)}</small>`:""}</div>
     <div class="d">${cambioHTML(t.cambio,t.cambio_tipo,"interanual")}</div>
     <canvas data-spark='${JSON.stringify(t.spark)}' aria-hidden="true"></canvas>
-    <div class="f">${esc(t.periodo)} · mensual · últimos 36 meses</div></div>`).join("");
+    <div class="f">${esc(t.periodo)} · frente a ${esc(t.periodo.replace(/(\d{4})$/,y=>y-1))} · la línea muestra los últimos 3 años</div></div>`).join("");
   document.querySelectorAll("canvas[data-spark]").forEach(cv=>{
     const pts=JSON.parse(cv.dataset.spark).filter(x=>x!=null);if(pts.length<2)return;
     const dpr=devicePixelRatio||1,w=cv.clientWidth,h=cv.clientHeight;cv.width=w*dpr;cv.height=h*dpr;
@@ -478,7 +492,7 @@ function bloquePulso(B){
     const last=S[nS-1].ext;
     const ext=S.map(x=>x.ext),esp=S.map(x=>x.esp);
     const cen=pad([last,...F.map(x=>x.central)]),lo=pad([last,...F.map(x=>x.lo)]),band=pad([0,...F.map(x=>+(x.hi-x.lo).toFixed(2))]);
-    if(B.paro.prevision)document.getElementById("notaParo").textContent=`Elaboración propia con datos extraídos del sitio web del INE: www.ine.es · Método: ${B.paro.prevision.metodo} Error medio a un trimestre: ±${nf(B.paro.prevision.error_medio_1t,1)} p.p. (${B.paro.prevision.n_pruebas} pruebas).`;
+    if(B.paro.prevision)document.getElementById("notaParo").innerHTML=`<b>Cómo se calcula:</b> partimos del dato del mismo trimestre del año pasado y le sumamos la tendencia del último año. Probado sobre ${B.paro.prevision.n_pruebas} trimestres pasados, se equivoca de media en ${nf(B.paro.prevision.error_medio_1t,1)} puntos al estimar el trimestre siguiente.<br><b>Técnica:</b> modelo estacional ingenuo con tendencia; intervalo del 80 % a partir de los errores de pruebas retrospectivas (<i>backtesting</i>).`;
     tablas.gParo={cab:["Periodo","Extremadura (%)","España (%)","Estimación","Intervalo 80 %"],
       filas:S.map(x=>[x.periodo,nf(x.ext,2),nf(x.esp,2),"",""]).concat(F.map(x=>[x.periodo,"","",nf(x.central,1),`${nf(x.lo,1)} – ${nf(x.hi,1)}`]))};
     c.setOption({...base,grid:{left:40,right:96,top:innerWidth<700?52:34,bottom:30},
@@ -507,7 +521,7 @@ function bloquePulso(B){
   const g=chart("gCCAA");
   if(g){
     const d=B.ranking.datos;
-    document.getElementById("subRanking").textContent=`Tasa de paro por comunidad y ciudad autónoma, ${B.ranking.periodo}, de mayor a menor.`;
+    document.getElementById("subRanking").textContent=`Porcentaje de paro en cada comunidad y ciudad autónoma, ${B.ranking.periodo}. Extremadura en naranja y el total de España en azul.`;
     tablas.gCCAA={cab:["Territorio","Tasa de paro (%)"],filas:d.map(x=>[x.nombre,nf(x.valor,2)])};
     const corto=n=>n.replace(/, Comunidad (Foral )?de$/,"").replace(/, Principado de$/,"").replace(/, Región de$/,"").replace("Balears, Illes","Illes Balears").replace("Rioja, La","La Rioja").replace("Castilla - La Mancha","Castilla-La Mancha");
     g.setOption({...base,grid:{left:40,right:10,top:26,bottom:90},
@@ -548,39 +562,83 @@ function mapaHero(E,geo){
 /* ================= BLOQUE 2 ================= */
 function bloqueEuropa(E,hayGeo){
   const nombres=E.nombres;
-  // gemelas
+  // regiones parecidas
+  const UNI={"PIB por habitante (UE = 100)":"","Tasa de paro":" %","Tasa de empleo":" %","Empleo en agricultura":" %","Gasto en I+D":" % PIB","Crecimiento de la población en 10 años":" %","Renta disponible (UE = 100)":""};
   document.getElementById("gemelas").innerHTML=E.gemelas.slice(0,5).map(g=>`<div class="gemela"><b>${esc(nombres[g.id]||g.nombre)}</b><small class="mono">${g.id}</small><span class="sim">${g.similitud}</span><div class="barra"><i style="width:${g.similitud}%"></i></div></div>`).join("");
-  document.getElementById("perfil").innerHTML=`<div style="color:var(--muted)"><span>Perfil de Extremadura</span><span></span></div>`+Object.entries(E.perfil).map(([n,v])=>`<div><span>${esc(n)}</span><b>${nf(v.ext,1)}</b></div>`).join("");
+  document.getElementById("perfil").innerHTML=`<div style="color:var(--muted)"><span>Cifras de Extremadura usadas</span><span></span></div>`+Object.entries(E.perfil).map(([n,v])=>`<div><span>${esc(n)}</span><b>${nf(v.ext,1)}${UNI[n]??""}</b></div>`).join("");
 
-  // mapa 3D
+  // mapa
+  const DESCR={
+    pib:"Riqueza producida por habitante, ajustada a lo que cuestan las cosas en cada país. 100 es la media de la UE.",
+    renta:"Dinero que les queda a los hogares para gastar o ahorrar, por habitante y ajustado al coste de vida. 100 es la media de la UE.",
+    paro:"Porcentaje de personas de 15 a 74 años que buscan trabajo y no lo encuentran.",
+    empleo:"Porcentaje de personas de 20 a 64 años que tienen trabajo.",
+    agro:"De cada 100 trabajadores, cuántos trabajan en agricultura, ganadería, montes o pesca.",
+    id:"Lo que se invierte en investigación y desarrollo, en porcentaje de la riqueza producida (PIB)."};
+  // en qué sentido pintar: 1 = más alto en azul; -1 = más alto en rojo (paro)
+  const SENTIDO={pib:1,renta:1,empleo:1,paro:-1};
+  const AZUL=["#27435e","#2f6aa0","#4b93d6","#8cc3f2"],ROJO=["#5e2b2b","#9e3b36","#d2604f","#f29a86"];
+  const SEQ=["#1e3350","#24507d","#2f6aa0","#4b93d6","#7fb6e8","#b9dbf7"];
   const sel=document.getElementById("selMapa");
   const orden=["pib","renta","paro","empleo","agro","id"].filter(k=>E.capas[k]);
   sel.innerHTML=orden.map((k,i)=>`<button type="button" data-k="${k}" aria-pressed="${i===0}">${esc(E.capas[k].titulo)}</button>`).join("");
-  let c3d=null;
-  const ramp=["#2a2150","#3b2d6b","#523f94","#6b56b8","#8a74d6","#a996ec"];
+  const movil=innerWidth<700;
+  let cm=null,capa=null,seleccion="ES43";
+  const q=(xs,p)=>{const s=[...xs].sort((a,b)=>a-b);if(!s.length)return null;const k=(s.length-1)*p,lo=Math.floor(k),hi=Math.ceil(k);return s[lo]+(s[hi]-s[lo])*(k-lo)};
+  const unidadTxt=L=>L.unidad==="UE = 100"?"":` ${L.unidad}`;
+  function tramos(L,k){
+    const vals=Object.values(L.valores),d=L.decimales,pieces=[];
+    const rango=(a,b)=>`${nf(a,d)} – ${nf(b,d)}`;
+    if(L.ue!=null&&SENTIDO[k]){
+      const ref=L.ue,bajo=vals.filter(v=>v<ref),alto=vals.filter(v=>v>=ref);
+      const colBajo=SENTIDO[k]>0?ROJO:AZUL,colAlto=SENTIDO[k]>0?AZUL:ROJO;
+      const cb=[Math.min(...bajo),q(bajo,.25),q(bajo,.5),q(bajo,.75),ref];
+      for(let i=0;i<4;i++)pieces.push({min:cb[i],max:cb[i+1],color:colBajo[3-i],label:rango(cb[i],cb[i+1])});
+      const ca=[ref,q(alto,.25),q(alto,.5),q(alto,.75),Math.max(...alto)];
+      for(let i=0;i<4;i++)pieces.push({min:ca[i],max:ca[i+1]+(i===3?1e-9:0),color:colAlto[i],label:rango(ca[i],ca[i+1])});
+      return {pieces,leyenda:SENTIDO[k]>0?`<span style="color:#8cc3f2">■</span> por encima de la media de la UE (${nf(ref,d)}) · <span style="color:#f29a86">■</span> por debajo`:`<span style="color:#f29a86">■</span> más paro que la media de la UE (${nf(ref,d)}) · <span style="color:#8cc3f2">■</span> menos paro`};
+    }
+    const cs=[0,1/6,2/6,3/6,4/6,5/6,1].map(p=>q(vals,p));
+    for(let i=0;i<6;i++)pieces.push({min:cs[i],max:cs[i+1]+(i===5?1e-9:0),color:SEQ[i],label:rango(cs[i],cs[i+1])});
+    return {pieces,leyenda:`Color más claro = valor más alto. Cada tono agrupa una sexta parte de las regiones.`};
+  }
+  function ficha(id){
+    const L=E.capas[capa],v=L.valores[id],d=L.decimales;
+    const orden=Object.entries(L.valores).sort((a,b)=>b[1]-a[1]);
+    const puesto=orden.findIndex(([k])=>k===id)+1;
+    const nombre=nombres[id]||id;
+    const comp=[];
+    if(L.ue!=null&&v!=null)comp.push(`Media UE: <b>${nf(L.ue,d)}</b>`);
+    if(id!=="ES43"&&L.ext!=null)comp.push(`Extremadura: <b>${nf(L.ext,d)}</b>`);
+    document.getElementById("datoMapa").innerHTML=v==null
+      ?`<span><b>${esc(nombre)}</b>: sin dato para ${L.anyo}</span>`
+      :`<span style="color:var(--ink)"><b>${esc(nombre)}</b></span><span>${esc(L.titulo)}: <b>${nf(v,d)}${esc(unidadTxt(L))}</b></span><span>Puesto <b>${puesto}</b> de ${L.n}, de mayor a menor</span>${comp.map(c=>`<span>${c}</span>`).join("")}`;
+  }
   function pintarCapa(k){
-    const L=E.capas[k];const vals=Object.entries(L.valores);
-    const nums=vals.map(v=>v[1]).sort((a,b)=>a-b);
-    // escala robusta (percentiles 2–98) para que un valor extremo no aplane el mapa
-    const mn=nums[Math.floor(nums.length*.02)],mx=nums[Math.ceil(nums.length*.98)-1];
-    const t=v=>Math.max(0,Math.min(1,(v-mn)/(mx-mn||1)));
-    document.getElementById("subMapa").textContent=`${L.descripcion} Año ${L.anyo}.`;
-    document.getElementById("datoMapa").innerHTML=`<span>Extremadura: <b>${nf(L.ext,L.decimales)} ${esc(L.unidad)}</b></span><span>Puesto <b>${L.puesto_ext}</b> de ${L.n} (de mayor a menor)</span>${L.ue!=null?`<span>Media UE: <b>${nf(L.ue,L.decimales)}</b></span>`:""}`;
-    tablas.mapa3d={cab:["Región","Código",`${L.titulo} (${L.unidad})`],filas:vals.sort((a,b)=>b[1]-a[1]).map(([id,v])=>[nombres[id]||id,id,nf(v,L.decimales)])};
+    capa=k;const L=E.capas[k];const vals=Object.entries(L.valores);
+    const T=tramos(L,k);
+    document.getElementById("subMapa").textContent=`${DESCR[k]||L.descripcion} Datos de ${L.anyo}.`;
+    document.getElementById("leyendaMapa").innerHTML=T.leyenda;
+    tablas.mapa3d={cab:["Región","Código",`${L.titulo} (${L.unidad})`],filas:[...vals].sort((a,b)=>b[1]-a[1]).map(([id,v])=>[nombres[id]||id,id,nf(v,L.decimales)])};
+    ficha(E.capas[k].valores[seleccion]!=null?seleccion:"ES43");
     if(!hayGeo)return;
-    if(!c3d)c3d=chart("mapa3d");
-    c3d.setOption({...base,backgroundColor:"transparent",
-      tooltip:{...base.tooltip,formatter:p=>{const v=L.valores[p.name];return `<b>${esc(nombres[p.name]||p.name)}</b> <span style="color:${C.muted}">${p.name}</span><br>${esc(L.titulo)}: <b>${v==null?"sin dato":nf(v,L.decimales)}</b> ${v==null?"":esc(L.unidad)}`}},
-      visualMap:{show:true,min:mn,max:mx,left:8,bottom:8,orient:"horizontal",itemWidth:10,itemHeight:140,text:[nf(mx,L.decimales),nf(mn,L.decimales)],textStyle:{color:C.ink2,fontSize:11},inRange:{color:ramp},calculable:false,seriesIndex:[]},
-      geo3D:{map:"nuts2",boxHeight:3,top:-30,regionHeight:0.3,shading:"lambert",
-        light:{main:{intensity:1.2,shadow:true,alpha:40,beta:30},ambient:{intensity:.35}},
-        viewControl:{distance:150,alpha:50,beta:0,center:[0,-8,0],minDistance:60,maxDistance:220,animationDurationUpdate:reduce?0:800},
-        groundPlane:{show:false},environment:"none",postEffect:{enable:false},
-        itemStyle:{color:"#1a2432",borderColor:"#0b1016",borderWidth:.6},
-        emphasis:{itemStyle:{color:C.pulso},label:{show:true,textStyle:{color:C.ink,backgroundColor:"#0f1620",padding:4,fontSize:12},formatter:p=>nombres[p.name]||p.name}},
-        regions:vals.map(([id,v])=>({name:id,height:0.3+t(v)*3,itemStyle:{color:id==="ES43"?C.ext:ramp[Math.min(5,Math.floor(t(v)*6))],borderColor:"#0b1016",borderWidth:.6}}))},
-      series:[{type:"scatter3D",coordinateSystem:"geo3D",symbolSize:0,data:[],silent:true}]
-    },{replaceMerge:["geo3D"]});
+    if(!cm){
+      cm=chart("mapa3d");
+      cm.on("click",p=>{if(p.name){seleccion=p.name;ficha(p.name)}});
+      cm.on("mouseover",p=>{if(p.name&&!movil)ficha(p.name)});
+      cm.on("globalout",()=>{if(!movil)ficha(seleccion)});
+    }
+    cm.setOption({...base,animationDurationUpdate:reduce?0:500,
+      tooltip:{...base.tooltip,trigger:"item",formatter:p=>{const v=L.valores[p.name];return `<b>${esc(nombres[p.name]||p.name)}</b><br>${esc(L.titulo)}: <b>${v==null?"sin dato":nf(v,L.decimales)+esc(unidadTxt(L))}</b>`}},
+      visualMap:{type:"piecewise",pieces:T.pieces,show:!movil,orient:"vertical",left:4,bottom:6,itemWidth:12,itemHeight:10,itemGap:3,textStyle:{color:C.ink2,fontSize:10},outOfRange:{color:"#1a2432"}},
+      series:[{type:"map",map:"nuts2",roam:true,scaleLimit:{min:1,max:12},zoom:1.15,center:[12,51],
+        aspectScale:0.72,selectedMode:"single",
+        itemStyle:{areaColor:"#1a2432",borderColor:"#0b1016",borderWidth:.5},
+        emphasis:{label:{show:false},itemStyle:{borderColor:C.pulso,borderWidth:1.5}},
+        select:{label:{show:false},itemStyle:{borderColor:C.pulso,borderWidth:2.5}},
+        label:{show:false},
+        data:vals.map(([id,v])=>({name:id,value:v,...(id==="ES43"?{itemStyle:{borderColor:"#ffffff",borderWidth:2}}:{})}))}]
+    },true);
   }
   sel.addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;sel.querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x===b));pintarCapa(b.dataset.k)});
   pintarCapa(orden[0]);
@@ -590,7 +648,7 @@ function bloqueEuropa(E,hayGeo){
   const g=chart("gConv");
   if(g){
     const K=E.convergencia;const pts=K.puntos;
-    document.getElementById("subConv").textContent=`Cada punto es una región: PIB por habitante en ${K.anyo0} (UE = 100) frente a los puntos que ha ganado o perdido cada año respecto a la media hasta ${K.anyo1}. Por encima de cero, la región se acerca a la media europea.`;
+    document.getElementById("subConv").innerHTML=`Cada punto es una región. Hacia la izquierda, las que partían con menos riqueza por habitante en ${K.anyo0}; hacia arriba, las que han ganado terreno cada año frente a la media europea hasta ${K.anyo1}. Por encima de la línea del cero, la región se acerca a la media.`;document.getElementById("tecConv").innerHTML=`<b>Técnica:</b> convergencia beta: nivel inicial del PIB por habitante en paridad de poder de compra (UE = 100) frente a su variación media anual en puntos.`;
     const ext=pts.filter(p=>p[0]==="ES43"),esp=pts.filter(p=>p[0].startsWith("ES")&&p[0]!=="ES43"),ue=pts.filter(p=>!p[0].startsWith("ES"));
     tablas.gConv={cab:["Región",`PIB pc ${K.anyo0} (UE=100)`,"Puntos por año"],filas:[...pts].sort((a,b)=>b[3]-a[3]).map(p=>[p[1],nf(p[2],1),nf(p[3],2)])};
     const tip=p=>`<b>${esc(p.data[1])}</b><br>PIB pc ${K.anyo0}: <b>${nf(p.data[2],1)}</b> (UE = 100)<br>Cambio: <b>${p.data[3]>0?"+":""}${nf(p.data[3],2)}</b> puntos por año`;
@@ -668,7 +726,7 @@ function bloqueCampo(K){
     const S=K.asimetria;
     const d=[["Cuando la UE sube",S.sube,S.n_sube],["Cuando la UE baja",S.baja,S.n_baja]].filter(x=>x[1]!=null);
     tablas.gAsim={cab:["Sentido","Cambio en España por 1 % en la UE","Semanas"],filas:d.map(x=>[x[0],nf(x[1],2)+" %",x[2]])};
-    document.getElementById("notaAsim").textContent="Un valor de 1 significa que España se mueve en la misma proporción que la UE; por encima de 1, con más fuerza. Estimación por mínimos cuadrados, sensible a semanas atípicas.";
+    document.getElementById("notaAsim").innerHTML="<b>Técnica:</b> regresión por mínimos cuadrados sin constante, separando las semanas en que el precio europeo sube de las que baja (últimos cinco años). Sensible a semanas atípicas.";
     a.setOption({...base,grid:{left:130,right:56,top:14,bottom:30},
       tooltip:{...base.tooltip,trigger:"item",formatter:p=>`<b>${p.name}</b><br>${nf(p.value,2)} % en España por cada 1 % en la UE<br>${d[p.dataIndex][2]} semanas`},
       xAxis:eje({type:"value",min:0,axisLabel:{color:C.muted,formatter:v=>nf(v,1)}}),

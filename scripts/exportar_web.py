@@ -297,13 +297,17 @@ def bloque_pulso(A: Almacen) -> dict:
             continue
         pct = sum(1 for x in ventana if x < ult) / len(ventana)
         estado = "atencion" if pct >= 0.95 or pct <= 0.05 else "normal"
-        unidad = "p.p." if titulo == "Tasa de paro" else "%"
-        sentido = "subida" if ult > 0 else "caída"
-        num = f"{ult:+.1f}".replace(".", ",").replace("-", "−")
-        if estado == "atencion":
-            texto = f"{'Mayor' if pct >= 0.95 else 'Menor'} variación interanual que el {round(max(pct, 1 - pct) * 100)} % de los datos de los últimos cinco años ({num} {unidad})."
+        es_paro = titulo == "Tasa de paro"
+        cifra = f"{abs(ult):.1f}".replace(".", ",")
+        if es_paro:
+            cambio_txt = f"{'sube' if ult > 0 else 'baja'} {cifra} puntos"
         else:
-            texto = f"Variación interanual ({num} {unidad}) dentro del rango habitual de los últimos cinco años."
+            cambio_txt = f"{'sube' if ult > 0 else 'cae'} un {cifra} %"
+        sentido = "subida" if ult > 0 else "caída"
+        if estado == "atencion":
+            texto = f"{cambio_txt.capitalize()} respecto al año anterior: un cambio {'mayor' if pct >= 0.95 else 'menor'} que en el {round(max(pct, 1 - pct) * 100)} % de los periodos de los últimos cinco años."
+        else:
+            texto = f"{cambio_txt.capitalize()} respecto al año anterior, un cambio normal comparado con los últimos cinco años."
         alertas.append({"titulo": titulo, "estado": estado, "texto": texto, "periodo": periodo_txt(ult_f, "trimestral" if titulo == "Tasa de paro" else "mensual"), "extremo": abs(pct - 0.5), "sentido": sentido})
     alertas.sort(key=lambda a: -a["extremo"])
 
