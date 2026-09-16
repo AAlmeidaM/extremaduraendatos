@@ -144,6 +144,12 @@ exportar_web.py → web/data/*.json  ──────────────�
 
 ## 8. Registro de avances
 
+- 2026-09-16 — Paso 1 — Repositorio privado `AAlmeidaM/extremaduraendatos`
+  (rama `main`) conectado y subido desde el PC (`subir_a_github.bat`, sesión de
+  GitHub guardada en Git Credential Manager). Proyecto de Vercel importado con
+  Root Directory `web`, sin dominio (lo añade el usuario). El primer despliegue
+  se canceló por el Ignored Build Step (`HEAD^` sin cambios en `web/`);
+  corregido para comparar con el último despliegue (`VERCEL_GIT_PREVIOUS_SHA`).
 - 2026-09-16 — Paso 1 — Herramientas del PC comprobadas; página provisional
   y configuración de Vercel en `web/`; esperando cuenta de GitHub.
 - 2026-09-16 — Diseño — Acordados nombre/dominio, público, estructura,
