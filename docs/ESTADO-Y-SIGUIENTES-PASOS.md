@@ -66,7 +66,7 @@ en 2021; sus datos 1996–2021 se conservan).
 
 ### 2.3 Actualización diaria
 
-Tarea programada `OfficeLab - extremadura-en-datos - ingesta diaria` (8:00)
+Tarea programada `OfficeLab - extremadura-en-datos - ingesta diaria` (13:00)
 → `scripts/run_ingesta.ps1` → `python -m extremadura_datos.ingest`
 (incremental). Cómo decide cada fuente si descarga:
 

@@ -24,7 +24,7 @@
 
 [CmdletBinding()]
 param(
-    [string]$HoraTarea = '08:00'
+    [string]$HoraTarea = '13:00'
 )
 
 $ErrorActionPreference = 'Stop'

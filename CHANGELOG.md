@@ -1,5 +1,10 @@
 # CHANGELOG — Extremadura en Datos
 
+## 2026-09-21 — La ingesta diaria pasa a las 13:00
+
+- `cambiar_hora_tarea.bat` + `scripts/cambiar_hora_tarea.ps1`: re-registran la tarea programada a la hora indicada (13:00 por defecto).
+- `scripts/setup.ps1`: hora por defecto 13:00.
+
 ## 2026-09-16 — Avisos de datos nuevos por Telegram
 
 - `scripts/notificar_telegram.py` (+ `telegram_prueba.bat`): mensaje con datos nuevos, comparación con periodo anterior, año anterior, España y UE, y calendario del INE; enganchado a `run_ingesta.ps1`.

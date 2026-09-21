@@ -143,6 +143,15 @@ exportar_web.py → web/data/*.json  ──────────────�
 
 ## 8. Registro de avances
 
+- 2026-09-21 — La carga diaria (y con ella la exportación de la web y el aviso
+  de Telegram) pasa de las 8:00 a las **13:00**. Nuevo `cambiar_hora_tarea.bat`
+  + `scripts/cambiar_hora_tarea.ps1`, que vuelven a registrar la tarea
+  `OfficeLab - extremadura-en-datos - ingesta diaria` con la hora indicada
+  (por defecto 13:00); `scripts/setup.ps1` también usa ya 13:00 por defecto.
+  Nota: `schtasks /Change` y `Set-ScheduledTask` pedían la contraseña de la
+  cuenta (la tarea tenía credenciales guardadas), por eso se vuelve a registrar
+  para el usuario que la lanza: se ejecuta con la sesión iniciada. Próxima
+  ejecución comprobada: 22/09/2026 13:00.
 - 2026-09-16 — Avisos por Telegram (bot @datosextremadura_bot).
   - `scripts/notificar_telegram.py`, llamado desde `run_ingesta.ps1` tras la
     exportación de la web. Para 20 series clave (paro EPA, población, turismo,
