@@ -30,9 +30,12 @@ from pathlib import Path
 
 RAIZ = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(RAIZ / "src"))
+sys.path.insert(0, str(RAIZ / "scripts"))
 
 from extremadura_datos import db  # noqa: E402
 from extremadura_datos.config import Config  # noqa: E402
+
+import gemelo  # noqa: E402  (scripts/gemelo.py)
 
 SALIDA = RAIZ / "web" / "datos"
 GEO_URL = "https://gisco-services.ec.europa.eu/distribution/v2/nuts/geojson/NUTS_RG_20M_2021_4326_LEVL_2.geojson"
@@ -658,10 +661,13 @@ def construir(conn) -> dict:
                        JOIN fuente f ON f.id=i.fuente_id WHERE cl.estado='ok' GROUP BY f.codigo""")
         cargas = {c: (m.isoformat() if m else None) for c, m in cur.fetchall()}
 
+    gemelo_datos = gemelo.construir(A, campo)
+
     return {
         "generado": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "resumen": {"indicadores": n_ind, "observaciones": n_obs, "cargas": cargas},
         "cinta": cinta, "kpis": kpis, "pulso": pulso, "europa": europa, "campo": campo,
+        "gemelo": gemelo_datos,
     }
 
 

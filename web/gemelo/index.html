@@ -1,0 +1,456 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="author" content="Alejandro Almeida (alejandroalmeida.es)">
+<title>Gemelo digital de Extremadura</title>
+<meta name="description" content="Estado de la economía y la sociedad extremeña, sincronizado cada día con las fuentes oficiales.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230b1016'/%3E%3Ccircle cx='32' cy='32' r='16' fill='none' stroke='%2322d3ee' stroke-width='5'/%3E%3Ccircle cx='32' cy='32' r='5' fill='%23a3e635'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0b1016;--bg2:#0f1620;--panel:#121b26;--panel2:#172231;--line:#223044;--grid:#1b2736;
+  --ink:#e6edf5;--ink2:#a9b6c6;--muted:#8190a3;
+  --acc:#22d3ee;--acc2:#a78bfa;--acc3:#a3e635;
+  --ext:#dd6b20;--esp:#1c9fbf;--ue:#9b72f0;--otros:#4a5a6e;
+  --ok:#3fb950;--warn:#d29922;--off:#5a6675;
+  --mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+a{color:var(--acc)}
+.wrap{max-width:1280px;margin:0 auto;padding:0 16px}
+.mono{font-family:var(--mono)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+
+/* barra superior */
+.barra{position:sticky;top:0;z-index:60;background:rgba(11,16,22,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.barra-in{display:flex;align-items:center;gap:18px;flex-wrap:wrap;padding:10px 0}
+.marca{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:-.01em;text-decoration:none;color:var(--ink)}
+.marca svg{width:28px;height:28px}
+.marca small{display:block;font:500 11px var(--mono);color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
+.sync{display:flex;align-items:center;gap:8px;font:12px var(--mono);color:var(--ink2)}
+.sync i{width:8px;height:8px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 0 rgba(63,185,80,.6);animation:latido 2.6s infinite}
+@keyframes latido{70%{box-shadow:0 0 0 8px rgba(63,185,80,0)}100%{box-shadow:0 0 0 0 rgba(63,185,80,0)}}
+.resumen-estado{font-size:13px;color:var(--ink2)}
+.resumen-estado b{color:var(--ink)}
+
+/* línea de tiempo */
+.tiempo{display:flex;align-items:center;gap:12px;flex:1 1 380px;min-width:280px}
+.tiempo input[type=range]{flex:1;accent-color:var(--acc);height:22px}
+.tiempo .fecha{font:600 13px var(--mono);color:var(--ink);min-width:82px;text-align:right}
+.tiempo button{background:var(--bg2);border:1px solid var(--line);color:var(--ink2);border-radius:8px;padding:5px 10px;font:12px Inter,sans-serif;cursor:pointer}
+.tiempo button:hover{color:var(--ink);border-color:var(--muted)}
+.tiempo button[aria-pressed=true]{border-color:var(--acc);color:var(--ink)}
+.retro{display:none;font:11px var(--mono);color:#ffd98a;background:#3a2a05;border:1px solid #5d4507;border-radius:6px;padding:3px 8px}
+body.pasado .retro{display:inline-block}
+
+/* cabecera */
+header.hero{padding:26px 0 8px}
+header.hero h1{font-size:clamp(26px,4vw,44px);letter-spacing:-.03em;margin:0 0 10px;line-height:1.05}
+header.hero p{color:var(--ink2);max-width:760px;margin:0}
+
+/* rejilla de sistemas */
+.sistemas{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:22px 0 10px}
+.sis{position:relative;text-align:left;background:linear-gradient(180deg,var(--panel),var(--bg2));border:1px solid var(--line);border-radius:14px;padding:14px;cursor:pointer;color:inherit;font:inherit;transition:border-color .15s,transform .15s}
+.sis:hover,.sis:focus-visible{border-color:var(--acc);transform:translateY(-2px);outline:none}
+.sis[aria-expanded=true]{border-color:var(--acc)}
+.sis .cab{display:flex;align-items:center;gap:10px}
+.sis .anillo{position:relative;width:46px;height:46px;flex:none}
+.sis .anillo svg{transform:rotate(-90deg)}
+.sis .anillo span{position:absolute;inset:0;display:grid;place-items:center;font:600 11px var(--mono)}
+.sis h3{margin:0;font-size:15px;font-weight:600}
+.sis .per{font:11px var(--mono);color:var(--muted)}
+.sis .valor{font:600 26px var(--mono);letter-spacing:-.02em;margin:10px 0 2px}
+.sis .valor small{font-size:13px;color:var(--muted);margin-left:5px}
+.sis .delta{font:12px var(--mono)}
+.sis .pie{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:10px;font-size:11px;color:var(--muted)}
+.chip{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:2px 8px;font:600 10px var(--mono);letter-spacing:.04em;text-transform:uppercase;border:1px solid}
+.chip.ok{color:var(--ok);border-color:rgba(63,185,80,.4)}
+.chip.warn{color:var(--warn);border-color:rgba(210,153,34,.45)}
+.chip.off{color:var(--off);border-color:#2b3543}
+.up{color:#7ee2a8}.down{color:#ff9b93}.flat{color:var(--muted)}
+canvas.spark{display:block;width:100%;height:30px;margin-top:8px}
+
+/* detalle */
+.detalle{display:none;grid-column:1/-1;background:var(--panel);border:1px solid var(--acc);border-radius:14px;padding:18px;margin-top:-4px}
+.detalle.abierto{display:block}
+.detalle h3{margin:0 0 2px;font-size:18px}
+.detalle .sub{margin:0 0 14px;color:var(--ink2);font-size:13px}
+.det-grid{display:grid;grid-template-columns:1.6fr 1fr;gap:16px}
+.graf{width:100%;height:300px}
+.secundarios{display:grid;gap:8px;align-content:start}
+.sec{display:grid;grid-template-columns:1fr auto;gap:2px 12px;background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.sec b{font-size:13px;font-weight:600}
+.sec .v{font:600 15px var(--mono);text-align:right}
+.sec small{font-size:11px;color:var(--muted)}
+.sec .d{font:11px var(--mono);text-align:right}
+.cerrar{float:right;background:none;border:1px solid var(--line);color:var(--ink2);border-radius:8px;padding:4px 10px;cursor:pointer;font:12px Inter,sans-serif}
+.tecnica{font-size:11px;color:var(--muted);margin:10px 0 0;line-height:1.45}
+.tecnica b{color:var(--ink2)}
+
+/* grafo */
+section.bloque{padding:40px 0 10px;border-top:1px solid var(--line);margin-top:34px}
+section.bloque h2{font-size:clamp(20px,2.6vw,30px);letter-spacing:-.02em;margin:0 0 6px}
+section.bloque p.intro{color:var(--ink2);max-width:820px;margin:0 0 16px}
+.tarjeta{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px}
+#grafo{width:100%;height:520px}
+.leyenda{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--ink2);margin-top:8px}
+.leyenda i{display:inline-block;width:22px;height:0;border-top-width:2px;border-top-style:solid;vertical-align:middle;margin-right:6px}
+.dato-rel{min-height:40px;background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:10px;font-size:13px;color:var(--ink2)}
+.dato-rel b{color:var(--ink);font-family:var(--mono)}
+
+footer{border-top:1px solid var(--line);padding:40px 0 60px;background:var(--bg2);margin-top:40px}
+.pie-grid{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:26px}
+footer h4{font:600 12px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 10px}
+footer p,footer li{font-size:13px;color:var(--ink2)}
+footer ul{list-style:none;padding:0;margin:0;display:grid;gap:8px}
+footer li b{color:var(--ink);font-weight:600}
+.legal{margin-top:26px;padding-top:16px;border-top:1px solid var(--line);font-size:12px;color:var(--muted);display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.error-carga{background:#2a1414;border:1px solid #5a2a2a;color:#ffb4ab;padding:14px;border-radius:10px;margin:20px 0}
+
+@media (max-width:1100px){.sistemas{grid-template-columns:repeat(2,1fr)}.det-grid{grid-template-columns:1fr}.pie-grid{grid-template-columns:1fr}}
+@media (max-width:620px){.sistemas{grid-template-columns:1fr}#grafo{height:420px}}
+@media (prefers-reduced-motion:reduce){.sync i{animation:none}.sis{transition:none}}
+</style>
+</head>
+<body>
+<div class="barra">
+  <div class="wrap barra-in">
+    <a class="marca" href="#">
+      <svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="14" fill="#121b26"/><circle cx="32" cy="32" r="16" fill="none" stroke="#22d3ee" stroke-width="5"/><circle cx="32" cy="32" r="5" fill="#a3e635"/></svg>
+      <span>Gemelo digital<small>Extremadura en datos</small></span>
+    </a>
+    <div class="sync"><i></i><span id="sync">Cargando…</span></div>
+    <div class="resumen-estado" id="resumenEstado"></div>
+    <div class="tiempo">
+      <span class="retro">viendo el pasado</span>
+      <input type="range" id="tiempo" min="0" max="0" value="0" aria-label="Fecha de referencia">
+      <span class="fecha mono" id="fechaRef">—</span>
+      <button type="button" id="btnPlay" aria-pressed="false" title="Recorrer el tiempo">▶</button>
+      <button type="button" id="btnAhora">Ahora</button>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+  <header class="hero">
+    <h1>El estado de Extremadura, sistema a sistema</h1>
+    <p>Ocho sistemas —empleo, población, turismo, vivienda, empresas, campo, economía y conocimiento— con su último dato oficial, si está dentro de lo habitual y cuándo se publicó. Abajo, cómo se conectan entre sí. La barra de arriba mueve toda la página a cualquier momento desde 2010.</p>
+  </header>
+
+  <div class="sistemas" id="sistemas"></div>
+
+  <section class="bloque" id="conexiones">
+    <h2>Cómo se conectan las partes</h2>
+    <p class="intro">Cada línea es una relación entre dos partes del sistema. Las continuas están medidas con los datos: se indica cuánto se parecen sus movimientos y con cuánto retraso. Las discontinuas son contables, es decir, relaciones de definición que no hace falta estimar.</p>
+    <div class="tarjeta">
+      <div class="dato-rel" id="datoRel">Pasa el cursor o toca una línea para ver la relación.</div>
+      <div id="grafo" role="img" aria-label="Esquema de relaciones entre los sistemas"></div>
+      <div class="leyenda">
+        <span><i style="border-color:#1c9fbf"></i>relación medida</span>
+        <span><i style="border-color:#8190a3;border-top-style:dashed"></i>relación contable</span>
+        <span style="color:var(--muted)">El grosor indica cuánto se parecen los movimientos.</span>
+      </div>
+      <p class="tecnica" id="tecRel"></p>
+    </div>
+  </section>
+</div>
+
+<footer>
+  <div class="wrap">
+    <div class="pie-grid">
+      <div>
+        <h4>Qué es esto</h4>
+        <p>Un gemelo digital del estado de Extremadura: no es tiempo real ni una maqueta del territorio, sino un modelo que se sincroniza cada día con las fuentes oficiales, dice en qué estado está cada parte y muestra cómo se relacionan.</p>
+        <p class="autor">Autor: <b style="color:var(--ink)">Alejandro Almeida</b> · <a href="https://alejandroalmeida.es" rel="author">alejandroalmeida.es</a> · <a href="../">panel clásico</a></p>
+      </div>
+      <div>
+        <h4>Método</h4>
+        <ul id="metodo"></ul>
+      </div>
+      <div>
+        <h4>Fuentes y avisos</h4>
+        <ul>
+          <li><b>INE</b> · Elaboración propia con datos extraídos del sitio web del INE: www.ine.es</li>
+          <li><b>Eurostat</b> · Fuente: Eurostat (CC BY 4.0), con tratamiento propio</li>
+          <li><b>Comisión Europea</b> · Agri-food data portal (CC BY 4.0), con tratamiento propio</li>
+          <li><b>FAO</b> · FAO Food Price Index, licencia CC-BY-4.0</li>
+          <li>Proyecto personal, sin respaldo de los organismos citados. Datos tal cual, sin garantía; las fuentes revisan cifras ya publicadas.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="legal"><span>© 2026 Extremadura en Datos · un proyecto de <a href="https://alejandroalmeida.es">Alejandro Almeida</a> · no comercial</span><span class="mono" id="generado"></span></div>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
+<script>
+"use strict";
+const C={bg:"#0b1016",panel:"#121b26",grid:"#1b2736",line:"#223044",ink:"#e6edf5",ink2:"#a9b6c6",muted:"#8190a3",
+  ext:"#dd6b20",esp:"#1c9fbf",ue:"#9b72f0",acc:"#22d3ee",ok:"#3fb950",warn:"#d29922",off:"#5a6675"};
+const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
+const nf=(v,d=1)=>v==null||isNaN(v)?"–":Number(v).toLocaleString("es-ES",{minimumFractionDigits:d,maximumFractionDigits:d});
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const MES=["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+const base={textStyle:{fontFamily:"Inter, sans-serif",color:C.ink2},animationDuration:reduce?0:700,
+  tooltip:{backgroundColor:"#0f1620",borderColor:C.line,textStyle:{color:C.ink,fontSize:12},confine:true}};
+const eje=(o={})=>Object.assign({axisLine:{lineStyle:{color:C.line}},axisTick:{show:false},axisLabel:{color:C.muted,fontSize:11},splitLine:{lineStyle:{color:C.grid}}},o);
+const charts=[];
+let chartGrafo=null;
+addEventListener("resize",()=>{charts.forEach(c=>c.resize()); if(chartGrafo)actualizarGrafo();});
+
+let G=null, rejilla=[], iAhora=0, iRef=0, abierto=null, timer=null, chartDet=null;
+
+fetch("../datos/panel.json").then(r=>{if(!r.ok)throw new Error("panel "+r.status);return r.json()})
+  .then(P=>{ if(!P.gemelo) throw new Error("el fichero de datos aún no incluye el gemelo"); arrancar(P); })
+  .catch(e=>{document.querySelector("main,.wrap").insertAdjacentHTML("beforeend",`<div class="error-carga">No se pudieron cargar los datos (${esc(e.message)}).</div>`);console.error(e)});
+
+/* ---------- utilidades de series ---------- */
+const mesDe=iso=>iso.slice(0,7);
+function valorEnMes(serie,mes){            // último valor con mes <= mes
+  let v=null;
+  for(const [f,x] of serie){ if(mesDe(f)<=mes){ v={fecha:f,valor:x}; } else break; }
+  return v;
+}
+function etiquetaMes(mes){const [a,m]=mes.split("-");return `${MES[+m-1]} ${a}`}
+function periodoTxt(iso,tipo){
+  const d=new Date(iso+"T00:00:00");
+  if(tipo==="trimestral")return `${Math.floor(d.getMonth()/3)+1}T ${d.getFullYear()}`;
+  if(tipo==="mensual")return `${MES[d.getMonth()].slice(0,3)} ${d.getFullYear()}`;
+  if(tipo==="semanal")return `sem. del ${d.toLocaleDateString("es-ES")}`;
+  return String(d.getFullYear());
+}
+function antiguedad(dias){
+  if(dias<=1)return "de ayer";
+  if(dias<45)return `hace ${dias} días`;
+  const m=Math.round(dias/30.4);
+  return m<18?`hace ${m} meses`:`hace ${(dias/365).toFixed(1).replace(".",",")} años`;
+}
+function deltaHTML(valor,tipo,invertir){
+  if(valor==null)return `<span class="flat">sin comparación</span>`;
+  const u=tipo?" p.p.":" %";
+  const cl=Math.abs(valor)<0.05?"flat":((valor>0)!==!!invertir?"up":"down");
+  const fl=Math.abs(valor)<0.05?"▬":valor>0?"▲":"▼";
+  return `<span class="${cl}">${fl} ${nf(Math.abs(valor),1)}${u} interanual</span>`;
+}
+const INVERTIR=new Set(["paro","paro_jov","paro_muj","disueltas"]);
+
+/* ---------- arranque ---------- */
+function arrancar(P){
+  G=P.gemelo; rejilla=G.rejilla; iAhora=rejilla.length-1; iRef=iAhora;
+  const gen=new Date(P.generado);
+  document.getElementById("sync").textContent=`Sincronizado el ${gen.toLocaleDateString("es-ES")} a las ${gen.toLocaleTimeString("es-ES",{hour:"2-digit",minute:"2-digit"})}`;
+  document.getElementById("generado").textContent=`Datos generados: ${gen.toLocaleString("es-ES")}`;
+  document.getElementById("metodo").innerHTML=Object.entries(G.metodo).map(([k,v])=>`<li><b>${esc({estado:"Estado",frescura:"Frescura",relaciones:"Relaciones"}[k]||k)}.</b> ${esc(v)}</li>`).join("");
+  const t=document.getElementById("tiempo");
+  t.max=iAhora; t.value=iAhora;
+  t.addEventListener("input",()=>{iRef=+t.value;pintarTodo()});
+  document.getElementById("btnAhora").addEventListener("click",()=>{parar();iRef=iAhora;t.value=iAhora;pintarTodo()});
+  document.getElementById("btnPlay").addEventListener("click",reproducir);
+  construirTarjetas();
+  pintarTodo();
+  dibujarGrafo();
+}
+function parar(){ if(timer){clearInterval(timer);timer=null;document.getElementById("btnPlay").setAttribute("aria-pressed","false");document.getElementById("btnPlay").textContent="▶"} }
+function reproducir(){
+  if(timer)return parar();
+  const b=document.getElementById("btnPlay");b.setAttribute("aria-pressed","true");b.textContent="❚❚";
+  if(iRef>=iAhora)iRef=Math.max(0,rejilla.length-121);
+  timer=setInterval(()=>{
+    iRef++; if(iRef>=iAhora){iRef=iAhora;parar()}
+    document.getElementById("tiempo").value=iRef; pintarTodo();
+  },reduce?400:120);
+}
+
+/* ---------- tarjetas ---------- */
+function construirTarjetas(){
+  const cont=document.getElementById("sistemas");
+  cont.innerHTML=G.sistemas.map(s=>`
+    <button class="sis" type="button" data-sis="${s.id}" aria-expanded="false">
+      <div class="cab">
+        <div class="anillo"><svg width="46" height="46" viewBox="0 0 46 46" aria-hidden="true">
+          <circle cx="23" cy="23" r="19" fill="none" stroke="#1b2736" stroke-width="5"/>
+          <circle class="arco" cx="23" cy="23" r="19" fill="none" stroke="${C.ok}" stroke-width="5" stroke-linecap="round" stroke-dasharray="119" stroke-dashoffset="119"/>
+        </svg><span class="pctxt mono"></span></div>
+        <div><h3>${esc(s.nombre)}</h3><div class="per"></div></div>
+      </div>
+      <div class="valor"></div>
+      <div class="delta"></div>
+      <canvas class="spark" aria-hidden="true"></canvas>
+      <div class="pie"><span class="chip off estado">—</span><span class="edad"></span></div>
+    </button>`).join("")+`<div class="detalle" id="detalle"></div>`;
+  cont.querySelectorAll(".sis").forEach(b=>b.addEventListener("click",()=>abrir(b.dataset.sis)));
+}
+
+function pintarTodo(){
+  const mes=rejilla[iRef];
+  document.getElementById("fechaRef").textContent=etiquetaMes(mes);
+  document.body.classList.toggle("pasado",iRef<iAhora);
+  let normales=0,total=0,atencion=[];
+  G.sistemas.forEach(s=>{
+    const el=document.querySelector(`.sis[data-sis="${s.id}"]`);
+    const p=s.principal;
+    const punto=valorEnMes(p.serie,mes);
+    const pct=iRef===iAhora?p.percentil:(p.estado_mensual?p.estado_mensual[mes]:null);
+    const estado=pct==null?"sin_referencia":(pct>=0.95||pct<=0.05?"atencion":"normal");
+    const yoy=iRef===iAhora?p.yoy:null;
+    el.querySelector(".valor").innerHTML=punto?`${nf(punto.valor,p.decimales)}${p.unidad?`<small>${esc(p.unidad)}</small>`:""}`:"<small>sin dato</small>";
+    el.querySelector(".per").textContent=punto?periodoTxt(punto.fecha,p.tipo):"—";
+    el.querySelector(".delta").innerHTML=iRef===iAhora?deltaHTML(yoy,p.en_puntos,INVERTIR.has(p.id)):`<span class="flat">dato vigente en ${etiquetaMes(mes)}</span>`;
+    const chip=el.querySelector(".estado");
+    chip.className=`chip estado ${estado==="atencion"?"warn":estado==="normal"?"ok":"off"}`;
+    chip.textContent=estado==="atencion"?"fuera de lo habitual":estado==="normal"?"dentro de lo habitual":"sin referencia";
+    const edad=el.querySelector(".edad");
+    if(iRef===iAhora){edad.textContent=`${p.fresca?"":"⚠ "}dato ${antiguedad(p.dias)}`;edad.style.color=p.fresca?"":"#ffd98a"}
+    else{edad.textContent="";}
+    // anillo: posición del percentil (0 = muy por debajo, 1 = muy por encima)
+    const arco=el.querySelector(".arco"),txt=el.querySelector(".pctxt");
+    const frac=pct==null?0:Math.max(0.04,pct);
+    arco.style.strokeDashoffset=String(119*(1-frac));
+    arco.setAttribute("stroke",estado==="atencion"?C.warn:estado==="normal"?C.ok:C.off);
+    txt.textContent=pct==null?"–":Math.round(pct*100);
+    txt.style.color=estado==="atencion"?C.warn:C.ink2;
+    sparkline(el.querySelector("canvas"),p.serie,mes,estado);
+    total++; if(estado==="normal")normales++; if(estado==="atencion")atencion.push(s.nombre);
+  });
+  document.getElementById("resumenEstado").innerHTML=
+    `<b>${normales}</b> de ${total} sistemas dentro de lo habitual` + (atencion.length?` · atención en <b>${esc(atencion.join(", "))}</b>`:"");
+  if(abierto)pintarDetalle(abierto);
+  if(chartGrafo)actualizarGrafo();
+}
+
+function sparkline(cv,serie,mes,estado){
+  const pts=serie.filter(([f])=>mesDe(f)<=mes).slice(-60);
+  const dpr=devicePixelRatio||1,w=cv.clientWidth||200,h=30;
+  cv.width=w*dpr;cv.height=h*dpr;const g=cv.getContext("2d");g.setTransform(dpr,0,0,dpr,0,0);g.clearRect(0,0,w,h);
+  if(pts.length<2)return;
+  const ys=pts.map(p=>p[1]),mn=Math.min(...ys),mx=Math.max(...ys);
+  const X=i=>2+i*(w-4)/(pts.length-1),Y=v=>h-3-(v-mn)/(mx-mn||1)*(h-6);
+  const col=estado==="atencion"?C.warn:C.acc;
+  g.beginPath();ys.forEach((v,i)=>i?g.lineTo(X(i),Y(v)):g.moveTo(X(i),Y(v)));g.strokeStyle=col;g.lineWidth=1.8;g.stroke();
+  g.beginPath();g.arc(X(pts.length-1),Y(ys.at(-1)),2.6,0,7);g.fillStyle=col;g.fill();
+}
+
+/* ---------- detalle ---------- */
+function abrir(id){
+  const cont=document.getElementById("detalle");
+  document.querySelectorAll(".sis").forEach(b=>b.setAttribute("aria-expanded",String(b.dataset.sis===id&&abierto!==id)));
+  if(abierto===id){abierto=null;cont.className="detalle";cont.innerHTML="";chartDet=null;return}
+  abierto=id;cont.className="detalle abierto";
+  const s=G.sistemas.find(x=>x.id===id),p=s.principal;
+  cont.innerHTML=`
+    <button class="cerrar" type="button" id="cerrarDet">Cerrar</button>
+    <h3>${esc(s.nombre)}</h3>
+    <p class="sub">${esc(s.descripcion)}${p.nota?" "+esc(p.nota):""}</p>
+    <div class="det-grid">
+      <div><div class="graf" id="grafDet"></div><p class="tecnica" id="tecDet"></p></div>
+      <div class="secundarios" id="secs"></div>
+    </div>`;
+  document.getElementById("cerrarDet").addEventListener("click",e=>{e.stopPropagation();abrir(id)});
+  chartDet=echarts.init(document.getElementById("grafDet"));charts.push(chartDet);
+  pintarDetalle(id);
+  cont.scrollIntoView({block:"nearest",behavior:reduce?"auto":"smooth"});
+}
+
+function pintarDetalle(id){
+  const s=G.sistemas.find(x=>x.id===id);if(!s||!chartDet)return;
+  const p=s.principal,mes=rejilla[iRef];
+  const series=[{nombre:"Extremadura",datos:p.serie,color:C.ext}];
+  if(p.esp)series.push({nombre:"España",datos:p.esp.serie,color:C.esp});
+  if(p.ue)series.push({nombre:"Media UE",datos:p.ue.serie,color:C.ue});
+  const marca=valorEnMes(p.serie,mes);
+  chartDet.setOption({...base,grid:{left:54,right:86,top:34,bottom:34},
+    legend:{top:0,left:0,textStyle:{color:C.ink2,fontSize:12},itemWidth:14,itemHeight:3,icon:"rect"},
+    tooltip:{...base.tooltip,trigger:"axis",axisPointer:{type:"line",lineStyle:{color:C.muted}},
+      valueFormatter:v=>v==null?"–":`${nf(v,p.decimales)} ${p.unidad}`},
+    xAxis:eje({type:"time",splitLine:{show:false},axisLabel:{color:C.muted,fontSize:11,hideOverlap:true}}),
+    yAxis:eje({type:"value",scale:true}),
+    series:series.map(x=>({name:x.nombre,type:"line",data:x.datos,symbol:"none",lineStyle:{width:2,color:x.color},itemStyle:{color:x.color},
+      labelLayout:{moveOverlap:"shiftY"},
+      endLabel:{show:true,color:C.ink2,fontSize:11,formatter:o=>`${x.nombre} ${nf(o.value[1],p.decimales)}`},
+      markLine:x.nombre==="Extremadura"&&marca?{silent:true,symbol:"none",lineStyle:{color:C.acc,type:"dashed"},
+        label:{color:C.acc,fontSize:11,formatter:etiquetaMes(mes),position:"insideEndTop"},data:[{xAxis:marca.fecha}]}:undefined}))
+  },{replaceMerge:["series"]});
+  document.getElementById("tecDet").innerHTML=`<b>Estado:</b> ${esc(p.texto_estado)} <b>Fuente:</b> ${esc(p.fuente)}. Último dato ${esc(periodoTxt(p.fecha,p.tipo))}, publicado ${esc(antiguedad(p.dias))}.`;
+  document.getElementById("secs").innerHTML=s.secundarios.map(x=>{
+    const punto=valorEnMes(x.serie,mes);
+    const cmp=[];
+    if(x.esp){const c=valorEnMes(x.esp.serie,mes);if(c)cmp.push(`España ${nf(c.valor,x.decimales)}`)}
+    if(x.ue){const c=valorEnMes(x.ue.serie,mes);if(c)cmp.push(`UE ${nf(c.valor,x.decimales)}`)}
+    return `<div class="sec">
+      <b>${esc(x.titulo)}</b><span class="v">${punto?nf(punto.valor,x.decimales):"–"}</span>
+      <small>${punto?esc(periodoTxt(punto.fecha,x.tipo)):"sin dato"}${x.unidad?" · "+esc(x.unidad):""}${x.fresca?"":" · ⚠ sin actualizar"}</small>
+      <span class="d">${iRef===iAhora?deltaHTML(x.yoy,x.en_puntos,INVERTIR.has(x.id)):""}</span>
+      ${cmp.length?`<small style="grid-column:1/3;color:var(--ink2)">${esc(cmp.join(" · "))}</small>`:""}
+    </div>`}).join("");
+}
+
+/* ---------- grafo ---------- */
+function nodoEstado(id){
+  const s=G.sistemas.find(x=>x.id===id);
+  if(!s)return "entorno";
+  const mes=rejilla[iRef];
+  const pct=iRef===iAhora?s.principal.percentil:(s.principal.estado_mensual||{})[mes];
+  return pct==null?"sin_referencia":(pct>=0.95||pct<=0.05?"atencion":"normal");
+}
+function colorNodo(n){
+  if(n.tipo==="entorno")return "#2b3a4d";
+  const e=nodoEstado(n.id);
+  return e==="atencion"?"#5a4410":e==="normal"?"#123322":"#232c38";
+}
+function bordeNodo(n){
+  if(n.tipo==="entorno")return C.muted;
+  const e=nodoEstado(n.id);
+  return e==="atencion"?C.warn:e==="normal"?C.ok:C.off;
+}
+function datosGrafo(){
+  const el=document.getElementById("grafo");
+  const w=el.clientWidth||900,h=el.clientHeight||520;
+  const nodos=G.nodos.map(n=>({...n, name:n.id,
+    x:60+n.x*(w-120), y:40+n.y*(h-110), symbolSize:n.tipo==="entorno"?44:58,
+    label:{show:true,color:C.ink,fontSize:12,fontWeight:600,position:"bottom",distance:8,formatter:n.nombre},
+    itemStyle:{color:colorNodo(n),borderColor:bordeNodo(n),borderWidth:2}}));
+  const aristas=G.relaciones.map(r=>({
+    source:r.de,target:r.a,
+    lineStyle:{color:r.tipo==="medida"?C.esp:C.muted,width:r.tipo==="medida"?Math.max(1.4,Math.abs(r.corr||0)*7):1.4,
+      type:r.tipo==="medida"?"solid":"dashed",curveness:0.16,opacity:.85},
+    _r:r}));
+  return {nodos,aristas};
+}
+function textoRelacion(r){
+  if(r.tipo!=="medida")return `<b>${esc(r.etiqueta)}</b> · relación contable. ${esc(r.detalle)}`;
+  const d=r.desfase_semanas!=null?`${r.desfase_semanas} semana${r.desfase_semanas===1?"":"s"}`
+        :r.desfase_meses===0?"sin retraso":`${nf(r.desfase_meses,0)} mes${r.desfase_meses===1?"":"es"}`;
+  return `<b>${esc(r.etiqueta)}</b> · se parecen <b>${nf(Math.abs(r.corr)*100,0)} %</b> ${r.corr<0?"en sentido contrario ":""}con ${d} de diferencia (${r.n} periodos). ${esc(r.detalle)}`;
+}
+function dibujarGrafo(){
+  const el=document.getElementById("grafo");
+  chartGrafo=echarts.init(el);charts.push(chartGrafo);
+  chartGrafo.getZr().on("globalout",()=>{document.getElementById("datoRel").textContent="Pasa el cursor o toca una línea para ver la relación."});
+  const {nodos,aristas}=datosGrafo();
+  chartGrafo.setOption({...base,
+    tooltip:{...base.tooltip,formatter:o=>o.dataType==="edge"?textoRelacion(o.data._r):`<b>${esc(o.data.nombre)}</b>`},
+    series:[{type:"graph",layout:"none",roam:false,
+      data:nodos,links:aristas,
+      emphasis:{focus:"adjacency",lineStyle:{width:5},label:{fontSize:13}},
+      lineStyle:{opacity:.85},
+      edgeSymbol:["none","arrow"],edgeSymbolSize:8,
+      left:"6%",right:"6%",top:"8%",bottom:"10%"}]});
+  chartGrafo.on("mouseover",o=>{ if(o.dataType==="edge")document.getElementById("datoRel").innerHTML=textoRelacion(o.data._r); });
+  chartGrafo.on("click",o=>{ if(o.dataType==="node"&&G.sistemas.some(s=>s.id===o.data.id)){abrir(o.data.id);document.getElementById("sistemas").scrollIntoView({behavior:reduce?"auto":"smooth"})} });
+  const medidas=G.relaciones.filter(r=>r.tipo==="medida").length;
+  document.getElementById("tecRel").innerHTML=`<b>Técnica:</b> ${esc(G.metodo.relaciones)} Se muestran ${medidas} relaciones medidas y ${G.relaciones.length-medidas} contables.`;
+}
+function actualizarGrafo(){
+  const {nodos,aristas}=datosGrafo();
+  chartGrafo.setOption({series:[{data:nodos,links:aristas}]});
+}
+</script>
+</body>
+</html>
