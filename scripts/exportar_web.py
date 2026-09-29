@@ -273,45 +273,26 @@ def bloque_pulso(A: Almacen) -> dict:
         ranking.append({"id": clave, "nombre": nombre, "valor": r(v)})
     ranking.sort(key=lambda x: -x["valor"])
 
-    # --- movimientos a vigilar: variación interanual del último dato frente a los 5 años anteriores ---
+    # --- movimientos a vigilar: mismo criterio que el gemelo (scripts/gemelo.py) ---
     candidatos = [
-        ("Pernoctaciones hoteleras", pern), ("Viajeros extranjeros en hoteles", viaj_ext),
-        ("Compraventa de viviendas", compra), ("Hipotecas sobre fincas urbanas", hip),
-        ("Sociedades mercantiles creadas", socs), ("Tasa de paro", paro),
+        ("Pernoctaciones hoteleras", pern, "mensual", False), ("Viajeros extranjeros en hoteles", viaj_ext, "mensual", False),
+        ("Compraventa de viviendas", compra, "mensual", False), ("Hipotecas sobre fincas urbanas", hip, "mensual", False),
+        ("Sociedades mercantiles creadas", socs, "mensual", False), ("Tasa de paro", paro, "trimestral", True),
     ]
     alertas = []
-    for titulo, obs in candidatos:
-        if len(obs) < 30:
+    for titulo, obs, tipo, en_puntos in candidatos:
+        yoys = gemelo.variacion_interanual(obs, tipo, en_puntos)
+        if not yoys:
             continue
-        idx = {f: v for f, v in obs}
-        yoy = []
-        for f, v in obs:
-            try:
-                p = idx.get(f.replace(year=f.year - 1))
-            except ValueError:
-                p = None
-            if p:
-                yoy.append((f, (v / p - 1) * 100 if titulo != "Tasa de paro" else v - p))
-        if len(yoy) < 20:
-            continue
-        ult_f, ult = yoy[-1]
-        ventana = [x for f, x in yoy[:-1] if f >= ult_f.replace(year=ult_f.year - 5)]
-        if len(ventana) < 12:
-            continue
-        pct = sum(1 for x in ventana if x < ult) / len(ventana)
-        estado = "atencion" if pct >= 0.95 or pct <= 0.05 else "normal"
-        es_paro = titulo == "Tasa de paro"
-        cifra = f"{abs(ult):.1f}".replace(".", ",")
-        if es_paro:
-            cambio_txt = f"{'sube' if ult > 0 else 'baja'} {cifra} puntos"
-        else:
-            cambio_txt = f"{'sube' if ult > 0 else 'cae'} un {cifra} %"
-        sentido = "subida" if ult > 0 else "caída"
-        if estado == "atencion":
-            texto = f"{cambio_txt.capitalize()} respecto al año anterior: un cambio {'mayor' if pct >= 0.95 else 'menor'} que en el {round(max(pct, 1 - pct) * 100)} % de los periodos de los últimos cinco años."
-        else:
-            texto = f"{cambio_txt.capitalize()} respecto al año anterior, un cambio normal comparado con los últimos cinco años."
-        alertas.append({"titulo": titulo, "estado": estado, "texto": texto, "periodo": periodo_txt(ult_f, "trimestral" if titulo == "Tasa de paro" else "mensual"), "extremo": abs(pct - 0.5), "sentido": sentido})
+        ev = gemelo.evaluar(yoys, len(yoys) - 1, tipo)
+        ult_f = yoys[-1][0]
+        alertas.append({
+            "titulo": titulo, "estado": ev["estado"],
+            "texto": gemelo.texto_estado(ev, tipo, en_puntos),
+            "periodo": periodo_txt(ult_f, tipo),
+            "extremo": abs((ev["percentil"] if ev["percentil"] is not None else 0.5) - 0.5),
+            "sentido": "subida" if (ev["yoy"] or 0) > 0 else "caída",
+        })
     alertas.sort(key=lambda a: -a["extremo"])
 
     serie_paro = [{"fecha": iso(f), "periodo": periodo_txt(f, "trimestral"), "ext": r(v), "esp": r(valor_en(paro_es, f))} for f, v in paro if f.year >= 2008]

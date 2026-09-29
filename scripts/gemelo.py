@@ -91,6 +91,150 @@ def _texto_estado(pct, yoy, en_puntos, nombre_periodo):
     return f"{cambio.capitalize()} respecto al mismo {nombre_periodo} del año anterior, dentro de lo habitual de los cinco años previos."
 
 
+
+# ---------------------------------------------------------------- criterio de normalidad
+# Reglas por periodicidad: años de referencia, mínimo de observaciones para
+# dar un estado, y tolerancia al emparejar el mismo periodo del año anterior.
+REGLA = {
+    "semanal":    {"anyos": 5, "minimo": 104, "tol_dias": 4},
+    "mensual":    {"anyos": 5, "minimo": 36, "tol_dias": 0},
+    "trimestral": {"anyos": 5, "minimo": 12, "tol_dias": 0},
+    "anual":      {"anyos": 10, "minimo": 8, "tol_dias": 0},
+}
+UMBRAL_PCT = 0.05     # colas del 5 % a cada lado
+UMBRAL_Z = 2.0        # distancia robusta mínima para hablar de anomalía
+
+# Variaciones que se comparan contra el confinamiento y el año de cierre: se
+# excluyen de la REFERENCIA (no de las series) porque son rebotes mecánicos
+# que ensanchan artificialmente lo que se considera "habitual".
+PANDEMIA = (date(2020, 3, 1), date(2021, 6, 30))
+
+
+def _base_pandemica(f: date) -> bool:
+    """La comparación de este dato tiene como base un periodo de pandemia."""
+    try:
+        base = f.replace(year=f.year - 1)
+    except ValueError:
+        base = f - timedelta(days=365)
+    return PANDEMIA[0] <= base <= PANDEMIA[1]
+
+
+def variacion_interanual(obs, tipo, en_puntos):
+    """[(fecha, variación frente al mismo periodo del año anterior)] a la
+    frecuencia propia de la serie (sin pasar por la rejilla mensual)."""
+    tol = REGLA[tipo]["tol_dias"]
+    idx = dict(obs)
+    salida = []
+    for f, v in obs:
+        prev = None
+        if tipo == "semanal":
+            objetivo = f - timedelta(weeks=52)
+            for g, w in obs:
+                if abs((g - objetivo).days) <= tol:
+                    prev = w
+                    break
+        else:
+            try:
+                prev = idx.get(f.replace(year=f.year - 1))
+            except ValueError:
+                prev = None
+        if prev is None:
+            continue
+        if en_puntos:
+            salida.append((f, v - prev))
+        elif prev:                      # sin base cero (p. ej. turismo en 2020)
+            salida.append((f, (v / prev - 1) * 100))
+    return salida
+
+
+def _percentil_medio(valor, muestra):
+    """Percentil con rango medio: reparte los empates en vez de ignorarlos."""
+    if not muestra:
+        return None
+    menores = sum(1 for x in muestra if x < valor)
+    iguales = sum(1 for x in muestra if x == valor)
+    return (menores + 0.5 * iguales) / len(muestra)
+
+
+def _cuantil(xs, q):
+    xs = sorted(xs)
+    if not xs:
+        return None
+    k = (len(xs) - 1) * q
+    lo, hi = math.floor(k), math.ceil(k)
+    return xs[lo] + (xs[hi] - xs[lo]) * (k - lo)
+
+
+def evaluar(yoys, i, tipo):
+    """Estado del dato i de la lista de variaciones interanuales.
+
+    Referencia: las variaciones de los `anyos` anteriores (sin contar la
+    actual). Posición: percentil dentro de esa referencia. Distancia: z
+    robusto = (valor - mediana) / (1,4826 x desviación absoluta mediana).
+    Estado: fuera de lo habitual si está en las colas del 5 % Y además se
+    aleja al menos 2 desviaciones robustas; al borde si solo se cumple una
+    de las dos; sin referencia si la muestra es corta.
+    """
+    regla = REGLA[tipo]
+    f, valor = yoys[i]
+    try:
+        corte = f.replace(year=f.year - regla["anyos"])
+    except ValueError:
+        corte = f - timedelta(days=365 * regla["anyos"])
+    candidatas = [(g, v) for g, v in yoys[:i] if g >= corte]
+    muestra = [v for g, v in candidatas if not _base_pandemica(g)]
+    excluidas = len(candidatas) - len(muestra)
+    n = len(muestra)
+    base = {"yoy": r(valor, 2), "n": n, "excluidas_pandemia": excluidas,
+            "ventana_anyos": regla["anyos"], "minimo": regla["minimo"]}
+    if n < regla["minimo"]:
+        return {**base, "estado": "sin_referencia", "percentil": None, "z": None,
+                "mediana": r(st.median(muestra), 2) if muestra else None,
+                "p05": None, "p95": None}
+    pct = _percentil_medio(valor, muestra)
+    mediana = st.median(muestra)
+    mad = st.median([abs(x - mediana) for x in muestra]) * 1.4826
+    z = (valor - mediana) / mad if mad else None
+    extremo_pos = pct <= UMBRAL_PCT or pct >= 1 - UMBRAL_PCT
+    extremo_dist = z is not None and abs(z) >= UMBRAL_Z
+    estado = "atencion" if (extremo_pos and extremo_dist) else ("limite" if (extremo_pos or extremo_dist) else "normal")
+    return {**base, "estado": estado, "percentil": r(pct, 3), "z": r(z, 2) if z is not None else None,
+            "mediana": r(mediana, 2), "mad": r(mad, 2),
+            "p05": r(_cuantil(muestra, 0.05), 2), "p95": r(_cuantil(muestra, 0.95), 2)}
+
+
+FRASE_PERIODO = {"semanal": "a la misma semana del año anterior", "mensual": "al mismo mes del año anterior",
+                 "trimestral": "al mismo trimestre del año anterior", "anual": "al año anterior"}
+
+
+def _n(x, d=1):
+    """Número en castellano: coma decimal y signo menos tipográfico."""
+    if x is None:
+        return "–"
+    return f"{x:,.{d}f}".replace(",", "X").replace(".", ",").replace("X", ".").replace("-", "−")
+
+
+def texto_estado(ev, tipo, en_puntos):
+    p = FRASE_PERIODO[tipo]
+    if ev.get("yoy") is None:
+        return "No hay dato del mismo periodo del año anterior para comparar."
+    cifra = _n(abs(ev["yoy"]))
+    unidad = "puntos" if en_puntos else "%"
+    verbo = "sube" if ev["yoy"] > 0 else "baja" if ev["yoy"] < 0 else "no cambia"
+    cambio = f"{verbo} {cifra} {unidad}" if ev["yoy"] else "no cambia"
+    if ev["estado"] == "sin_referencia":
+        return (f"{cambio.capitalize()} frente {p}. No se valora: hacen falta "
+                f"al menos {ev['minimo']} comparaciones previas y solo hay {ev['n']}.")
+    comun = (f"{cambio.capitalize()} frente {p}. En los últimos {ev['ventana_anyos']} años "
+             f"({ev['n']} comparaciones) lo habitual fue entre {_n(ev['p05'])} y {_n(ev['p95'])} {unidad}, "
+             f"con una variación típica de {_n(ev['mediana'])} {unidad}.")
+    if ev["estado"] == "atencion":
+        return comun + f" Este dato queda en el {round(ev['percentil'] * 100)} % de la distribución y a {_n(abs(ev['z']))} desviaciones de lo típico: fuera de lo habitual."
+    if ev["estado"] == "limite":
+        return comun + f" Este dato queda en el {round(ev['percentil'] * 100)} % de la distribución: en el borde de lo habitual, pero sin llegar a ser una anomalía clara."
+    return comun + f" Este dato queda en el {round(ev['percentil'] * 100)} % de la distribución: dentro de lo habitual."
+
+
 # ------------------------------------------------------------------ series
 def fin_periodo(f: date, tipo: str) -> date:
     """Último día del periodo al que se refiere el dato."""
@@ -116,36 +260,54 @@ def serie_obs(A, sel, suma=(), concat=()):
 
 
 def bloque_serie(A, cfg, rejilla, hoy):
-    """Convierte la definición de una serie en su ficha para la web."""
+    """Ficha de una serie: último dato, estado según el criterio de arriba,
+    estado mes a mes (para la línea de tiempo) y frescura."""
     obs = serie_obs(A, cfg["sel"], cfg.get("suma", ()), cfg.get("concat", ()))
     if not obs:
         return None
     tipo = cfg["tipo"]
     en_puntos = cfg.get("en_puntos", False)
     f, v = obs[-1]
-    mensual = mensualizar(obs, rejilla)
-    yoy_mes = interanual(mensual, en_puntos)
-    mes_ult = _mes(f)
-    yoy = yoy_mes.get(mes_ult)
-    ventana = [x for m, x in yoy_mes.items() if m < mes_ult and m >= f"{f.year - 5:04d}-{f.month:02d}"]
-    pct = percentil(yoy, ventana) if yoy is not None and len(ventana) >= 12 else None
+    yoys = variacion_interanual(obs, tipo, en_puntos)
+    ev = evaluar(yoys, len(yoys) - 1, tipo) if yoys else {
+        "yoy": None, "n": 0, "ventana_anyos": REGLA[tipo]["anyos"], "minimo": REGLA[tipo]["minimo"],
+        "estado": "sin_referencia", "percentil": None, "z": None, "mediana": None, "p05": None, "p95": None}
+
+    # estado del último dato vigente en cada mes (línea de tiempo)
+    codigo = {"normal": "n", "limite": "l", "atencion": "a", "sin_referencia": "s"}
+    estado_mensual, j = {}, 0
+    for mes in rejilla:
+        while j < len(yoys) and _mes(yoys[j][0]) <= mes:
+            j += 1
+        if j:
+            e = evaluar(yoys, j - 1, tipo)
+            estado_mensual[mes] = [e["percentil"], codigo[e["estado"]]]
+
+    # nivel del dato actual dentro de su propia historia reciente (contexto)
+    try:
+        corte_nivel = f.replace(year=f.year - 10)
+    except ValueError:
+        corte_nivel = f - timedelta(days=3652)
+    hist = [x for g, x in obs if g >= corte_nivel]
+    nivel = _percentil_medio(v, hist) if len(hist) >= 8 else None
+
     dias = max(0, (hoy - fin_periodo(f, tipo)).days)
     limite = cfg.get("dias_limite", DIAS_LIMITE[tipo])
+    mensual = mensualizar(obs, rejilla)
     return {
         "id": cfg["id"], "titulo": cfg["titulo"], "unidad": cfg.get("unidad", ""),
         "decimales": cfg.get("decimales", 0), "tipo": tipo, "fuente": cfg.get("fuente", "INE"),
         "nota": cfg.get("nota"),
-        "valor": r(v, 3), "fecha": f.isoformat(), "dias": dias,
-        "fresca": dias <= limite,
-        "yoy": r(yoy, 2), "en_puntos": en_puntos,
-        "percentil": r(pct, 3) if pct is not None else None,
-        "estado": estado_desde_percentil(pct),
-        "texto_estado": _texto_estado(pct, yoy, en_puntos, {"semanal": "periodo", "mensual": "mes", "trimestral": "trimestre", "anual": "año"}[tipo]),
+        "valor": r(v, 3), "fecha": f.isoformat(), "dias": dias, "fresca": dias <= limite,
+        "en_puntos": en_puntos,
+        "yoy": ev["yoy"], "estado": ev["estado"], "percentil": ev["percentil"], "z": ev["z"],
+        "referencia": {k: ev.get(k) for k in ("n", "excluidas_pandemia", "ventana_anyos", "minimo", "mediana", "mad", "p05", "p95")},
+        "nivel": r(nivel, 3) if nivel is not None else None,
+        "texto_estado": texto_estado(ev, tipo, en_puntos),
         "serie": [[g.isoformat(), r(x, 3)] for g, x in obs if g >= INICIO],
         "mensual": {m: r(x, 3) for m, x in mensual.items()},
-        "estado_mensual": {m: r(percentil(x, [y for mm, y in yoy_mes.items() if mm < m and mm >= f"{int(m[:4]) - 5:04d}-{m[5:]}"]), 3)
-                           for m, x in yoy_mes.items()},
-        "yoy_mensual": {m: r(x, 2) for m, x in yoy_mes.items()},
+        "estado_mensual": estado_mensual,
+        "yoy_mensual": {m: r(x, 2) for m, x in interanual(mensual, en_puntos).items()},
     }
 
 
@@ -415,8 +577,17 @@ def construir(A, campo_extra, hoy: date | None = None) -> dict:
         "nodos": NODOS,
         "relaciones": rels,
         "metodo": {
-            "estado": "Percentil de la variación interanual del último dato frente a las de los cinco años anteriores; fuera del 5-95 % se marca como fuera de lo habitual.",
-            "frescura": "Días desde el último dato publicado; se marca la serie cuando supera el plazo normal de su fuente.",
+            "estado": ("Se compara el último dato con el mismo periodo del año anterior y esa variación se sitúa entre las "
+                       "de los años anteriores del propio indicador, a su frecuencia real (semanal, mensual, trimestral o anual). "
+                       "Se marca «fuera de lo habitual» cuando queda en el 5 % más alto o más bajo Y además se aleja al menos dos "
+                       "desviaciones robustas de la variación típica; «en el borde» cuando solo se cumple una de las dos condiciones; "
+                       "«sin referencia» cuando no hay suficientes comparaciones previas (104 semanales, 36 mensuales, 12 trimestrales "
+                       "u 8 anuales). La referencia son 5 años, o 10 en las series anuales, y deja fuera las comparaciones "
+                       "contra los meses de pandemia (de marzo de 2020 a junio de 2021), que eran rebotes mecánicos."),
+            "frescura": "Días transcurridos desde que terminó el periodo del último dato; se marca la serie cuando supera el plazo normal de su fuente (21 días las semanales, 75 las mensuales, 150 las trimestrales y 1.100 las anuales).",
             "relaciones": "Correlación entre variaciones interanuales con desfase de 0 a 12 meses; se muestra la de mayor valor absoluto y solo si supera el umbral 1,96/√n. Las relaciones contables no se estiman: son definiciones.",
+            "limites": ("El estado dice si el cambio es raro para esa serie, no si es bueno o malo. No corrige el efecto de "
+                        "cambios metodológicos ni de revisiones posteriores de las fuentes, y los años de la pandemia siguen "
+                        "dentro de las series, aunque sus comparaciones se excluyen de la referencia."),
         },
     }

@@ -17,7 +17,7 @@
   --ink:#e6edf5;--ink2:#a9b6c6;--muted:#8190a3;
   --acc:#22d3ee;--acc2:#a78bfa;--acc3:#a3e635;
   --ext:#dd6b20;--esp:#1c9fbf;--ue:#9b72f0;--otros:#4a5a6e;
-  --ok:#3fb950;--warn:#d29922;--off:#5a6675;
+  --ok:#3fb950;--warn:#d29922;--alerta:#f0883e;--off:#5a6675;
   --mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
 }
 *{box-sizing:border-box}
@@ -73,6 +73,7 @@ header.hero p{color:var(--ink2);max-width:760px;margin:0}
 .chip{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:2px 8px;font:600 10px var(--mono);letter-spacing:.04em;text-transform:uppercase;border:1px solid}
 .chip.ok{color:var(--ok);border-color:rgba(63,185,80,.4)}
 .chip.warn{color:var(--warn);border-color:rgba(210,153,34,.45)}
+.chip.alerta{color:#f0883e;border-color:rgba(240,136,62,.5)}
 .chip.off{color:var(--off);border-color:#2b3543}
 .up{color:#7ee2a8}.down{color:#ff9b93}.flat{color:var(--muted)}
 canvas.spark{display:block;width:100%;height:30px;margin-top:8px}
@@ -193,7 +194,7 @@ footer li b{color:var(--ink);font-weight:600}
 <script>
 "use strict";
 const C={bg:"#0b1016",panel:"#121b26",grid:"#1b2736",line:"#223044",ink:"#e6edf5",ink2:"#a9b6c6",muted:"#8190a3",
-  ext:"#dd6b20",esp:"#1c9fbf",ue:"#9b72f0",acc:"#22d3ee",ok:"#3fb950",warn:"#d29922",off:"#5a6675"};
+  ext:"#dd6b20",esp:"#1c9fbf",ue:"#9b72f0",acc:"#22d3ee",ok:"#3fb950",warn:"#d29922",alerta:"#f0883e",off:"#5a6675"};
 const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
 const nf=(v,d=1)=>v==null||isNaN(v)?"–":Number(v).toLocaleString("es-ES",{minimumFractionDigits:d,maximumFractionDigits:d,useGrouping:"always"});
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -240,6 +241,10 @@ function deltaHTML(valor,tipo,invertir){
   return `<span class="${cl}">${fl} ${nf(Math.abs(valor),1)}${u} interanual</span>`;
 }
 const INVERTIR=new Set(["paro","paro_jov","paro_muj","disueltas"]);
+const CODIGO={n:"normal",l:"limite",a:"atencion",s:"sin_referencia"};
+const ETIQUETA={normal:"dentro de lo habitual",limite:"en el borde",atencion:"fuera de lo habitual",sin_referencia:"sin referencia"};
+const CLASE={normal:"ok",limite:"warn",atencion:"alerta",sin_referencia:"off"};
+const COLOR={normal:C.ok,limite:C.warn,atencion:C.alerta,sin_referencia:C.off};
 
 /* ---------- arranque ---------- */
 function arrancar(P){
@@ -292,20 +297,21 @@ function pintarTodo(){
   const mes=rejilla[iRef];
   document.getElementById("fechaRef").textContent=etiquetaMes(mes);
   document.body.classList.toggle("pasado",iRef<iAhora);
-  let normales=0,total=0,atencion=[];
+  let normales=0,total=0,atencion=[],borde=[];
   G.sistemas.forEach(s=>{
     const el=document.querySelector(`.sis[data-sis="${s.id}"]`);
     const p=s.principal;
     const punto=valorEnMes(p.serie,mes);
-    const pct=iRef===iAhora?p.percentil:(p.estado_mensual?p.estado_mensual[mes]:null);
-    const estado=pct==null?"sin_referencia":(pct>=0.95||pct<=0.05?"atencion":"normal");
+    const hist=p.estado_mensual?p.estado_mensual[mes]:null;
+    const pct=iRef===iAhora?p.percentil:(hist?hist[0]:null);
+    const estado=iRef===iAhora?p.estado:(hist?CODIGO[hist[1]]:"sin_referencia");
     const yoy=iRef===iAhora?p.yoy:null;
     el.querySelector(".valor").innerHTML=punto?`${nf(punto.valor,p.decimales)}${p.unidad?` <small>${esc(p.unidad)}</small>`:""}`:"<small>sin dato</small>";
     el.querySelector(".per").textContent=punto?periodoTxt(punto.fecha,p.tipo):"—";
     el.querySelector(".delta").innerHTML=iRef===iAhora?deltaHTML(yoy,p.en_puntos,INVERTIR.has(p.id)):`<span class="flat">dato vigente en ${etiquetaMes(mes)}</span>`;
     const chip=el.querySelector(".estado");
-    chip.className=`chip estado ${estado==="atencion"?"warn":estado==="normal"?"ok":"off"}`;
-    chip.textContent=estado==="atencion"?"fuera de lo habitual":estado==="normal"?"dentro de lo habitual":"sin referencia";
+    chip.className=`chip estado ${CLASE[estado]}`;
+    chip.textContent=ETIQUETA[estado];
     const edad=el.querySelector(".edad");
     if(iRef===iAhora){edad.textContent=`${p.fresca?"":"⚠ "}periodo cerrado ${antiguedad(p.dias)}`;edad.style.color=p.fresca?"":"#ffd98a"}
     else{edad.textContent="";}
@@ -313,14 +319,17 @@ function pintarTodo(){
     const arco=el.querySelector(".arco"),txt=el.querySelector(".pctxt");
     const frac=pct==null?0:Math.max(0.04,pct);
     arco.style.strokeDashoffset=String(119*(1-frac));
-    arco.setAttribute("stroke",estado==="atencion"?C.warn:estado==="normal"?C.ok:C.off);
+    arco.setAttribute("stroke",COLOR[estado]);
     txt.textContent=pct==null?"–":Math.round(pct*100);
-    txt.style.color=estado==="atencion"?C.warn:C.ink2;
+    txt.style.color=estado==="sin_referencia"?C.muted:COLOR[estado];
     sparkline(el.querySelector("canvas"),p.serie,mes,estado);
-    total++; if(estado==="normal")normales++; if(estado==="atencion")atencion.push(s.nombre);
+    el.title=iRef===iAhora?p.texto_estado:"";
+    total++; if(estado==="normal")normales++; if(estado==="atencion")atencion.push(s.nombre); if(estado==="limite")borde.push(s.nombre);
   });
   document.getElementById("resumenEstado").innerHTML=
-    `<b>${normales}</b> de ${total} sistemas dentro de lo habitual` + (atencion.length?` · atención en <b>${esc(atencion.join(", "))}</b>`:"");
+    `<b>${normales}</b> de ${total} sistemas dentro de lo habitual`
+    + (atencion.length?` · <span style="color:var(--alerta)">fuera de lo habitual: <b>${esc(atencion.join(", "))}</b></span>`:"")
+    + (borde.length?` · <span style="color:var(--warn)">en el borde: ${esc(borde.join(", "))}</span>`:"");
   if(abierto)pintarDetalle(abierto);
   if(chartGrafo)actualizarGrafo();
 }
@@ -377,7 +386,13 @@ function pintarDetalle(id){
       markLine:x.nombre==="Extremadura"&&marca?{silent:true,symbol:"none",lineStyle:{color:C.acc,type:"dashed"},
         label:{color:C.acc,fontSize:11,formatter:etiquetaMes(mes),position:"insideEndTop"},data:[{xAxis:marca.fecha}]}:undefined}))
   },{replaceMerge:["series"]});
-  document.getElementById("tecDet").innerHTML=`<b>Estado:</b> ${esc(p.texto_estado)} <b>Fuente:</b> ${esc(p.fuente)}. Último dato disponible: ${esc(periodoTxt(p.fecha,p.tipo))}; ese periodo terminó ${esc(antiguedad(p.dias))}.`;
+  const rf=p.referencia||{};
+  const u=p.en_puntos?" p.p.":(p.unidad==="%"?" %":"");
+  const nivel=p.nivel==null?"":` El nivel actual supera al ${Math.round(p.nivel*100)} % de los datos de los últimos diez años.`;
+  document.getElementById("tecDet").innerHTML=
+    `<b>Estado:</b> ${esc(p.texto_estado)}${nivel}<br>`+
+    `<b>Referencia:</b> ${rf.n??"–"} comparaciones de los últimos ${rf.ventana_anyos??"–"} años · rango habitual ${nf(rf.p05,1)}${u} a ${nf(rf.p95,1)}${u} · variación típica ${nf(rf.mediana,1)}${u}${p.z!=null?` · este dato está a ${nf(Math.abs(p.z),1)} desviaciones`:""}.<br>`+
+    `<b>Fuente:</b> ${esc(p.fuente)}. Último dato: ${esc(periodoTxt(p.fecha,p.tipo))}; ese periodo terminó ${esc(antiguedad(p.dias))}.`;
   document.getElementById("secs").innerHTML=s.secundarios.map(x=>{
     const punto=valorEnMes(x.serie,mes);
     const cmp=[];
@@ -395,20 +410,13 @@ function pintarDetalle(id){
 function nodoEstado(id){
   const s=G.sistemas.find(x=>x.id===id);
   if(!s)return "entorno";
-  const mes=rejilla[iRef];
-  const pct=iRef===iAhora?s.principal.percentil:(s.principal.estado_mensual||{})[mes];
-  return pct==null?"sin_referencia":(pct>=0.95||pct<=0.05?"atencion":"normal");
+  if(iRef===iAhora)return s.principal.estado;
+  const h=(s.principal.estado_mensual||{})[rejilla[iRef]];
+  return h?CODIGO[h[1]]:"sin_referencia";
 }
-function colorNodo(n){
-  if(n.tipo==="entorno")return "#2b3a4d";
-  const e=nodoEstado(n.id);
-  return e==="atencion"?"#5a4410":e==="normal"?"#123322":"#232c38";
-}
-function bordeNodo(n){
-  if(n.tipo==="entorno")return C.muted;
-  const e=nodoEstado(n.id);
-  return e==="atencion"?C.warn:e==="normal"?C.ok:C.off;
-}
+const RELLENO={normal:"#123322",limite:"#3a2f10",atencion:"#4a2a12",sin_referencia:"#232c38"};
+function colorNodo(n){ return n.tipo==="entorno"?"#2b3a4d":RELLENO[nodoEstado(n.id)]; }
+function bordeNodo(n){ return n.tipo==="entorno"?C.muted:COLOR[nodoEstado(n.id)]; }
 function datosGrafo(){
   const el=document.getElementById("grafo");
   const w=el.clientWidth||900,h=el.clientHeight||520;
