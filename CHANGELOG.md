@@ -1,5 +1,9 @@
 # CHANGELOG — Extremadura en Datos
 
+## 2026-09-29 — Web: replanteamiento como gemelo digital (solo diseño)
+
+- `docs/gemelo-digital.md`: sistemas vitales, grafo de relaciones, línea de tiempo y orden de trabajo D1–D7.
+
 ## 2026-09-21 — La ingesta diaria pasa a las 13:00
 
 - `cambiar_hora_tarea.bat` + `scripts/cambiar_hora_tarea.ps1`: re-registran la tarea programada a la hora indicada (13:00 por defecto).
