@@ -661,7 +661,11 @@ def construir(conn) -> dict:
                        JOIN fuente f ON f.id=i.fuente_id WHERE cl.estado='ok' GROUP BY f.codigo""")
         cargas = {c: (m.isoformat() if m else None) for c, m in cur.fetchall()}
 
-    gemelo_datos = gemelo.construir(A, campo)
+    try:
+        gemelo_datos = gemelo.construir(A, campo)
+    except Exception as exc:  # el resto del panel no debe caerse por el gemelo
+        print("AVISO gemelo:", exc)
+        gemelo_datos = None
 
     return {
         "generado": datetime.now(timezone.utc).isoformat(timespec="seconds"),
