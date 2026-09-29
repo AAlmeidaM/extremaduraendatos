@@ -97,8 +97,56 @@ Se mantienen `cinta`, `kpis` y el bloque europeo (mapa, gemelas, convergencia).
 | D6 | Revisión del usuario y sustitución de la portada actual | 🔄 pendiente de tu revisión; el panel clásico enlaza ya al gemelo |
 | D7 | Fase posterior: simulador de escenarios; datos municipales (SEPE, padrón) | ⬜ |
 
+## 7b. Criterio de normalidad (revisado 2026-09-29)
+
+Qué se mira, exactamente, para decir si un sistema está «dentro de lo habitual»:
+
+1. **Qué se compara.** El último dato frente al mismo periodo del año anterior
+   (variación interanual). Así se neutraliza la estacionalidad sin desestacionalizar.
+2. **A qué frecuencia.** La propia de cada serie: semanal en precios, mensual en
+   turismo, vivienda y empresas, trimestral en paro y población, anual en economía
+   y conocimiento. *(Antes se hacía sobre una rejilla mensual, lo que repetía cada
+   dato trimestral 3 veces y cada anual 12: la muestra parecía de 60 cuando en
+   realidad eran 20 o 5.)*
+3. **Contra qué referencia.** Las variaciones interanuales del mismo indicador en
+   los 5 años anteriores (10 años en las series anuales), **excluyendo** las
+   comparaciones cuya base cae entre marzo de 2020 y junio de 2021: son rebotes
+   mecánicos de la pandemia. Sin esa exclusión, el rango «habitual» de
+   pernoctaciones llegaba a +164 %; con ella queda en +15,7 %.
+4. **Dos condiciones, no una.**
+   - *Posición*: percentil del dato dentro de esa referencia (con reparto de
+     empates), fuera del 5 % inferior o superior.
+   - *Distancia*: z robusto = (valor − mediana) / (1,4826 × desviación absoluta
+     mediana), al menos 2 en valor absoluto.
+   Ambas → **fuera de lo habitual**. Solo una → **en el borde**. Ninguna →
+   **dentro de lo habitual**.
+5. **Muestra mínima.** 104 comparaciones semanales, 36 mensuales, 12 trimestrales
+   u 8 anuales. Por debajo, **sin referencia**: no se pinta un estado falso.
+6. **Contexto de nivel.** Además del cambio, se guarda en qué percentil está el
+   *nivel* actual dentro de sus diez últimos años (solo informativo).
+7. **Frescura.** Días desde que terminó el periodo del dato (no desde su inicio),
+   con plazos de 21 / 75 / 150 / 1.100 días según periodicidad.
+
+Lo que el criterio **no** hace: no dice si el cambio es bueno o malo, no corrige
+cambios metodológicos ni revisiones posteriores de las fuentes, y no detecta
+anomalías de nivel (solo de cambio). El mismo criterio se usa ya en «Movimientos
+a vigilar» del panel clásico.
+
 ## 8. Registro
 
+- 2026-09-29 (revisión del criterio) — Auditados los ocho sistemas contra los
+  datos reales. Problemas encontrados y corregidos: (a) la muestra estaba
+  inflada por la rejilla mensual (trimestral 189 «observaciones» cuando eran 20;
+  anual 189 cuando eran 5); (b) los precios semanales perdían 3 de cada 4 semanas
+  al pasar por esa rejilla (percentil 0,27 frente a 0,19 real); (c) el rango
+  habitual incluía los rebotes de la pandemia; (d) un percentil extremo bastaba
+  para marcar alarma aunque el movimiento fuera diminuto; (e) empates tratados
+  como estrictamente menores; (f) series anuales evaluadas con 5 comparaciones.
+  Resultado con el criterio nuevo: 7 sistemas dentro de lo habitual y Población
+  «en el borde» (crece 0,2 %, lo más alto de los últimos 5 años, pero a 1,8
+  desviaciones). Hay un tercer estado, «en el borde», y un cuarto, «sin
+  referencia». Pendiente: la serie de población ECP solo deja evaluar desde 2021
+  (histórico corto en la base) y el panel clásico comparte ya el mismo criterio.
 - 2026-09-29 (tarde) — **Gemelo publicado en `/gemelo/` con datos reales.**
   Estado actual: 7 de 8 sistemas dentro de lo habitual; Población marcada
   fuera de lo habitual porque su crecimiento interanual (+0,2 %) es el mayor

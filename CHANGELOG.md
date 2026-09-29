@@ -1,5 +1,12 @@
 # CHANGELOG — Extremadura en Datos
 
+## 2026-09-29 (revisión) — Criterio de normalidad del gemelo
+
+- Variación interanual a la frecuencia real de cada serie (ya no sobre rejilla mensual).
+- Referencia de 5 años (10 en anuales) excluyendo los rebotes de la pandemia.
+- Estado por percentil (colas del 5 %) **y** distancia robusta (z ≥ 2); nuevos estados «en el borde» y «sin referencia».
+- `scripts/exportar_web.py` usa el mismo criterio en «Movimientos a vigilar».
+
 ## 2026-09-29 (tarde) — Gemelo digital publicado en /gemelo/
 
 - Datos reales, 8 sistemas con estado y frescura, 9 relaciones y línea de tiempo comprobada.
