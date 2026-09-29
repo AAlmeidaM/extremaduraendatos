@@ -1,5 +1,11 @@
 # CHANGELOG — Extremadura en Datos
 
+## 2026-09-29 (tarde) — Gemelo digital publicado en /gemelo/
+
+- Datos reales, 8 sistemas con estado y frescura, 9 relaciones y línea de tiempo comprobada.
+- Población con serie histórica; frescura medida desde el fin del periodo.
+- El panel clásico enlaza al gemelo.
+
 ## 2026-09-29 — Gemelo digital (implementación)
 
 - `scripts/gemelo.py`: sistemas vitales, estado, frescura y relaciones medidas para `panel.json`.

@@ -90,15 +90,27 @@ Se mantienen `cinta`, `kpis` y el bloque europeo (mapa, gemelas, convergencia).
 | Paso | Qué | Estado |
 |---|---|---|
 | D1 | Este documento | ✅ 2026-09-29 |
-| D2 | Exportador v2 (`sistemas`, `relaciones`, `tiempo`) + contraste | 🔄 2026-09-29: `scripts/gemelo.py` escrito y probado con datos simulados (8 sistemas, 5 relaciones medidas + 4 contables, ~217 KB añadidos a panel.json); pendiente la primera ejecución real |
-| D3 | Página del gemelo en `web/gemelo/` (sala de control + estado + frescura) | 🔄 2026-09-29: escrita; pendiente de ver con datos reales |
-| D4 | Grafo del sistema con las relaciones medidas | 🔄 2026-09-29: incluido en la página (ECharts graph, posiciones fijas, aristas medidas y contables) |
-| D5 | Línea de tiempo sincronizada | 🔄 2026-09-29: barra mensual 2010→hoy con reproducción; mueve tarjetas, detalle y grafo |
-| D6 | Revisión del usuario y sustitución de la portada actual | ⬜ |
+| D2 | Exportador v2 (`sistemas`, `relaciones`, `tiempo`) + contraste | ✅ 2026-09-29: ejecutado contra la base real; panel.json 490 KB |
+| D3 | Página del gemelo en `web/gemelo/` (sala de control + estado + frescura) | ✅ 2026-09-29: publicado en /gemelo/ y revisado en navegador |
+| D4 | Grafo del sistema con las relaciones medidas | ✅ 2026-09-29: 5 relaciones medidas y 4 contables |
+| D5 | Línea de tiempo sincronizada | ✅ 2026-09-29: comprobada (enero 2020 devuelve el estado de entonces) |
+| D6 | Revisión del usuario y sustitución de la portada actual | 🔄 pendiente de tu revisión; el panel clásico enlaza ya al gemelo |
 | D7 | Fase posterior: simulador de escenarios; datos municipales (SEPE, padrón) | ⬜ |
 
 ## 8. Registro
 
+- 2026-09-29 (tarde) — **Gemelo publicado en `/gemelo/` con datos reales.**
+  Estado actual: 7 de 8 sistemas dentro de lo habitual; Población marcada
+  fuera de lo habitual porque su crecimiento interanual (+0,2 %) es el mayor
+  de los últimos cinco años. Relaciones medidas que superan el umbral:
+  UE→campo (0,78, sin retraso), FAO→campo (0,27 a 6 meses), turismo→empleo
+  (−0,18), empleo→vivienda (−0,26) y población→vivienda (−0,27); más cuatro
+  contables. Correcciones tras la primera ejecución: la población usa también
+  la serie histórica de la ECP (antes no tenía referencia), la frescura se
+  mide desde el **fin del periodo** y no desde su fecha de inicio (plazos:
+  21/75/150/1100 días), y se corrigieron separación de unidades y miles.
+  Línea de tiempo comprobada: en enero de 2020 muestra paro 23,59 % y
+  1.064.970 habitantes.
 - 2026-09-29 — Implementación D2-D5. `scripts/gemelo.py` (nuevo) construye la
   sección `gemelo` de `panel.json`: 8 sistemas con indicador principal,
   secundarios, estado (percentil de la variación interanual), estado mes a mes
