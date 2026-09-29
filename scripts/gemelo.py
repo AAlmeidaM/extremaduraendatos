@@ -85,8 +85,8 @@ def _texto_estado(pct, yoy, en_puntos, nombre_periodo):
     verbo = "sube" if yoy > 0 else "baja" if yoy < 0 else "se mantiene"
     cambio = f"{verbo} {cifra} {unidad}" if not en_puntos or True else ""
     if estado_desde_percentil(pct) == "atencion":
-        comparativa = "más" if pct >= 0.95 else "menos"
-        return f"{cambio.capitalize()} respecto al mismo {nombre_periodo} del año anterior: {comparativa} que en el {round(max(pct, 1 - pct) * 100)} % de los cinco años previos."
+        comparativa = "mayor" if pct >= 0.95 else "menor"
+        return f"{cambio.capitalize()} respecto al mismo {nombre_periodo} del año anterior: un cambio {comparativa} que en el {round(max(pct, 1 - pct) * 100)} % de los periodos de los cinco años previos."
     return f"{cambio.capitalize()} respecto al mismo {nombre_periodo} del año anterior, dentro de lo habitual de los cinco años previos."
 
 

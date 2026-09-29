@@ -90,13 +90,23 @@ Se mantienen `cinta`, `kpis` y el bloque europeo (mapa, gemelas, convergencia).
 | Paso | Qué | Estado |
 |---|---|---|
 | D1 | Este documento | ✅ 2026-09-29 |
-| D2 | Exportador v2 (`sistemas`, `relaciones`, `tiempo`) + contraste | ⬜ |
-| D3 | Página del gemelo en `web/gemelo/` (sala de control + estado + frescura) | ⬜ |
-| D4 | Grafo del sistema con las relaciones medidas | ⬜ |
-| D5 | Línea de tiempo sincronizada | ⬜ |
+| D2 | Exportador v2 (`sistemas`, `relaciones`, `tiempo`) + contraste | 🔄 2026-09-29: `scripts/gemelo.py` escrito y probado con datos simulados (8 sistemas, 5 relaciones medidas + 4 contables, ~217 KB añadidos a panel.json); pendiente la primera ejecución real |
+| D3 | Página del gemelo en `web/gemelo/` (sala de control + estado + frescura) | 🔄 2026-09-29: escrita; pendiente de ver con datos reales |
+| D4 | Grafo del sistema con las relaciones medidas | 🔄 2026-09-29: incluido en la página (ECharts graph, posiciones fijas, aristas medidas y contables) |
+| D5 | Línea de tiempo sincronizada | 🔄 2026-09-29: barra mensual 2010→hoy con reproducción; mueve tarjetas, detalle y grafo |
 | D6 | Revisión del usuario y sustitución de la portada actual | ⬜ |
 | D7 | Fase posterior: simulador de escenarios; datos municipales (SEPE, padrón) | ⬜ |
 
 ## 8. Registro
 
+- 2026-09-29 — Implementación D2-D5. `scripts/gemelo.py` (nuevo) construye la
+  sección `gemelo` de `panel.json`: 8 sistemas con indicador principal,
+  secundarios, estado (percentil de la variación interanual), estado mes a mes
+  para la línea de tiempo y frescura; relaciones del grafo (correlación con
+  desfase de 0 a 12 meses, solo si supera 1,96/√n) y nodos con posición fija.
+  `web/gemelo/index.html`: tarjetas con anillo de estado, detalle con
+  comparación España/UE, grafo interactivo y barra de tiempo con reproducción.
+  Probado con datos simulados; **pendiente de ejecutar contra la base real**
+  (el PC estaba bloqueado): la tarea de las 13:00 regenera `panel.json` y lo
+  sube sola.
 - 2026-09-29 — Decisiones G1–G4 y diseño inicial. Sin código todavía.

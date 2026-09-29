@@ -1,5 +1,10 @@
 # CHANGELOG — Extremadura en Datos
 
+## 2026-09-29 — Gemelo digital (implementación)
+
+- `scripts/gemelo.py`: sistemas vitales, estado, frescura y relaciones medidas para `panel.json`.
+- `web/gemelo/index.html`: sala de control, grafo de relaciones y línea de tiempo.
+
 ## 2026-09-29 — Web: replanteamiento como gemelo digital (solo diseño)
 
 - `docs/gemelo-digital.md`: sistemas vitales, grafo de relaciones, línea de tiempo y orden de trabajo D1–D7.
