@@ -195,7 +195,7 @@ footer li b{color:var(--ink);font-weight:600}
 const C={bg:"#0b1016",panel:"#121b26",grid:"#1b2736",line:"#223044",ink:"#e6edf5",ink2:"#a9b6c6",muted:"#8190a3",
   ext:"#dd6b20",esp:"#1c9fbf",ue:"#9b72f0",acc:"#22d3ee",ok:"#3fb950",warn:"#d29922",off:"#5a6675"};
 const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
-const nf=(v,d=1)=>v==null||isNaN(v)?"–":Number(v).toLocaleString("es-ES",{minimumFractionDigits:d,maximumFractionDigits:d});
+const nf=(v,d=1)=>v==null||isNaN(v)?"–":Number(v).toLocaleString("es-ES",{minimumFractionDigits:d,maximumFractionDigits:d,useGrouping:"always"});
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const MES=["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
 const base={textStyle:{fontFamily:"Inter, sans-serif",color:C.ink2},animationDuration:reduce?0:700,
@@ -227,7 +227,7 @@ function periodoTxt(iso,tipo){
   return String(d.getFullYear());
 }
 function antiguedad(dias){
-  if(dias<=1)return "de ayer";
+  if(dias<=1)return "ahora mismo";
   if(dias<45)return `hace ${dias} días`;
   const m=Math.round(dias/30.4);
   return m<18?`hace ${m} meses`:`hace ${(dias/365).toFixed(1).replace(".",",")} años`;
@@ -300,14 +300,14 @@ function pintarTodo(){
     const pct=iRef===iAhora?p.percentil:(p.estado_mensual?p.estado_mensual[mes]:null);
     const estado=pct==null?"sin_referencia":(pct>=0.95||pct<=0.05?"atencion":"normal");
     const yoy=iRef===iAhora?p.yoy:null;
-    el.querySelector(".valor").innerHTML=punto?`${nf(punto.valor,p.decimales)}${p.unidad?`<small>${esc(p.unidad)}</small>`:""}`:"<small>sin dato</small>";
+    el.querySelector(".valor").innerHTML=punto?`${nf(punto.valor,p.decimales)}${p.unidad?` <small>${esc(p.unidad)}</small>`:""}`:"<small>sin dato</small>";
     el.querySelector(".per").textContent=punto?periodoTxt(punto.fecha,p.tipo):"—";
     el.querySelector(".delta").innerHTML=iRef===iAhora?deltaHTML(yoy,p.en_puntos,INVERTIR.has(p.id)):`<span class="flat">dato vigente en ${etiquetaMes(mes)}</span>`;
     const chip=el.querySelector(".estado");
     chip.className=`chip estado ${estado==="atencion"?"warn":estado==="normal"?"ok":"off"}`;
     chip.textContent=estado==="atencion"?"fuera de lo habitual":estado==="normal"?"dentro de lo habitual":"sin referencia";
     const edad=el.querySelector(".edad");
-    if(iRef===iAhora){edad.textContent=`${p.fresca?"":"⚠ "}dato ${antiguedad(p.dias)}`;edad.style.color=p.fresca?"":"#ffd98a"}
+    if(iRef===iAhora){edad.textContent=`${p.fresca?"":"⚠ "}periodo cerrado ${antiguedad(p.dias)}`;edad.style.color=p.fresca?"":"#ffd98a"}
     else{edad.textContent="";}
     // anillo: posición del percentil (0 = muy por debajo, 1 = muy por encima)
     const arco=el.querySelector(".arco"),txt=el.querySelector(".pctxt");
@@ -377,7 +377,7 @@ function pintarDetalle(id){
       markLine:x.nombre==="Extremadura"&&marca?{silent:true,symbol:"none",lineStyle:{color:C.acc,type:"dashed"},
         label:{color:C.acc,fontSize:11,formatter:etiquetaMes(mes),position:"insideEndTop"},data:[{xAxis:marca.fecha}]}:undefined}))
   },{replaceMerge:["series"]});
-  document.getElementById("tecDet").innerHTML=`<b>Estado:</b> ${esc(p.texto_estado)} <b>Fuente:</b> ${esc(p.fuente)}. Último dato ${esc(periodoTxt(p.fecha,p.tipo))}, publicado ${esc(antiguedad(p.dias))}.`;
+  document.getElementById("tecDet").innerHTML=`<b>Estado:</b> ${esc(p.texto_estado)} <b>Fuente:</b> ${esc(p.fuente)}. Último dato disponible: ${esc(periodoTxt(p.fecha,p.tipo))}; ese periodo terminó ${esc(antiguedad(p.dias))}.`;
   document.getElementById("secs").innerHTML=s.secundarios.map(x=>{
     const punto=valorEnMes(x.serie,mes);
     const cmp=[];

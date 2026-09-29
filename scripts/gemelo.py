@@ -16,7 +16,8 @@ import math
 import statistics as st
 from datetime import date, timedelta
 
-DIAS_LIMITE = {"semanal": 30, "mensual": 100, "trimestral": 200, "anual": 900}
+# Plazo normal desde que TERMINA el periodo hasta que la fuente lo publica.
+DIAS_LIMITE = {"semanal": 21, "mensual": 75, "trimestral": 150, "anual": 1100}
 MESES_POR_PERIODO = {"semanal": 0.25, "mensual": 1, "trimestral": 3, "anual": 12}
 INICIO = date(2010, 1, 1)
 
@@ -91,8 +92,23 @@ def _texto_estado(pct, yoy, en_puntos, nombre_periodo):
 
 
 # ------------------------------------------------------------------ series
-def serie_obs(A, sel, suma=()):
+def fin_periodo(f: date, tipo: str) -> date:
+    """Último día del periodo al que se refiere el dato."""
+    if tipo == "semanal":
+        return f + timedelta(days=6)
+    if tipo == "anual":
+        return date(f.year, 12, 31)
+    meses = 3 if tipo == "trimestral" else 1
+    m = f.month - 1 + meses
+    return date(f.year + m // 12, m % 12 + 1, 1) - timedelta(days=1)
+
+
+def serie_obs(A, sel, suma=(), concat=()):
     obs = A.una(*sel)
+    for s in concat:  # histórico + serie viva: la más reciente manda
+        previo = dict(A.una(*s))
+        previo.update(dict(obs))
+        obs = sorted(previo.items())
     for s in suma:
         extra = dict(A.una(*s))
         obs = [(f, v + extra[f]) for f, v in obs if f in extra]
@@ -101,7 +117,7 @@ def serie_obs(A, sel, suma=()):
 
 def bloque_serie(A, cfg, rejilla, hoy):
     """Convierte la definición de una serie en su ficha para la web."""
-    obs = serie_obs(A, cfg["sel"], cfg.get("suma", ()))
+    obs = serie_obs(A, cfg["sel"], cfg.get("suma", ()), cfg.get("concat", ()))
     if not obs:
         return None
     tipo = cfg["tipo"]
@@ -113,13 +129,14 @@ def bloque_serie(A, cfg, rejilla, hoy):
     yoy = yoy_mes.get(mes_ult)
     ventana = [x for m, x in yoy_mes.items() if m < mes_ult and m >= f"{f.year - 5:04d}-{f.month:02d}"]
     pct = percentil(yoy, ventana) if yoy is not None and len(ventana) >= 12 else None
-    dias = (hoy - f).days
+    dias = max(0, (hoy - fin_periodo(f, tipo)).days)
+    limite = cfg.get("dias_limite", DIAS_LIMITE[tipo])
     return {
         "id": cfg["id"], "titulo": cfg["titulo"], "unidad": cfg.get("unidad", ""),
         "decimales": cfg.get("decimales", 0), "tipo": tipo, "fuente": cfg.get("fuente", "INE"),
         "nota": cfg.get("nota"),
         "valor": r(v, 3), "fecha": f.isoformat(), "dias": dias,
-        "fresca": dias <= DIAS_LIMITE[tipo],
+        "fresca": dias <= limite,
         "yoy": r(yoy, 2), "en_puntos": en_puntos,
         "percentil": r(pct, 3) if pct is not None else None,
         "estado": estado_desde_percentil(pct),
@@ -137,6 +154,12 @@ def comparacion(A, cfg, clave, rejilla):
     if not sel:
         return None
     obs = A.una(*sel)
+    if cfg.get("concat") and obs:
+        hist = A.una(sel[0] + "_historico", *sel[1:]) if not sel[0].endswith("_historico") else []
+        if hist:
+            previo = dict(hist)
+            previo.update(dict(obs))
+            obs = sorted(previo.items())
     if not obs:
         return None
     return {"serie": [[g.isoformat(), r(x, 3)] for g, x in obs if g >= INICIO],
@@ -150,10 +173,10 @@ EPA_TOT = ["Tasa de paro de la población", "Ambos sexos", "Total"]
 
 def definicion():
     """8 sistemas vitales. Cada serie: id, título, selección, tipo, unidad."""
-    def S(id_, titulo, sel, tipo, unidad="", dec=0, fuente="INE", en_puntos=False, suma=(), esp=None, ue=None, nota=None):
+    def S(id_, titulo, sel, tipo, unidad="", dec=0, fuente="INE", en_puntos=False, suma=(), esp=None, ue=None, nota=None, concat=()):
         return {"id": id_, "titulo": titulo, "sel": sel, "tipo": tipo, "unidad": unidad,
                 "decimales": dec, "fuente": fuente, "en_puntos": en_puntos, "suma": suma,
-                "esp": esp, "ue": ue, "nota": nota}
+                "concat": concat, "esp": esp, "ue": ue, "nota": nota}
 
     return [
         {"id": "empleo", "nombre": "Empleo", "icono": "empleo",
@@ -170,10 +193,13 @@ def definicion():
         {"id": "poblacion", "nombre": "Población", "icono": "poblacion",
          "descripcion": "Cuántas personas viven en Extremadura y cómo cambia.",
          "principal": S("pob", "Población residente", ("ine_ecp_poblacion_ccaa", ["Total", "Todas las edades"], "ES43"), "trimestral", "habitantes", 0,
+                        concat=[("ine_ecp_poblacion_ccaa_historico", ["Total", "Todas las edades"], "ES43")],
                         esp=("ine_ecp_poblacion_ccaa", ["Total", "Todas las edades", "Total Nacional"], "ES")),
          "secundarios": [
-             S("pob_bad", "Badajoz", ("ine_ecp_poblacion_provincia", ["Total", "Todas las edades", "Badajoz"], "ES431"), "trimestral", "habitantes", 0),
-             S("pob_cac", "Cáceres", ("ine_ecp_poblacion_provincia", ["Total", "Todas las edades", "Cáceres"], "ES432"), "trimestral", "habitantes", 0),
+             S("pob_bad", "Badajoz", ("ine_ecp_poblacion_provincia", ["Total", "Todas las edades", "Badajoz"], "ES431"), "trimestral", "habitantes", 0,
+               concat=[("ine_ecp_poblacion_provincia_historico", ["Total", "Todas las edades", "Badajoz"], "ES431")]),
+             S("pob_cac", "Cáceres", ("ine_ecp_poblacion_provincia", ["Total", "Todas las edades", "Cáceres"], "ES432"), "trimestral", "habitantes", 0,
+               concat=[("ine_ecp_poblacion_provincia_historico", ["Total", "Todas las edades", "Cáceres"], "ES432")]),
              S("pob_eu", "Población (Eurostat, 1 de enero)", ("eurostat_poblacion_nuts2", ["Number", "Total"], "ES43"), "anual", "habitantes", 0, fuente="Eurostat"),
          ]},
         {"id": "turismo", "nombre": "Turismo", "icono": "turismo",
